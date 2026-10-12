@@ -1,0 +1,14 @@
+# Secrets
+.env
+
+# Raw market data: vendor terms, kept out of Git (only derived tables in data/gold/)
+data/raw/
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# MLflow local runs
+mlruns/
