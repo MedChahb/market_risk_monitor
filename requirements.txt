@@ -34,6 +34,8 @@ mlflow==3.17.1
 # Plotting and notebooks
 matplotlib==3.11.2
 ipykernel==7.4.0
+nbformat==5.11.1
+nbclient==0.11.0
 
 # Tests and lint
 pytest==9.1.1
