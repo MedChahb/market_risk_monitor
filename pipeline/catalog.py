@@ -2,6 +2,9 @@
 
 from dataclasses import dataclass
 
+YAHOO_LICENCE = "Yahoo terms: personal use; raw data not redistributed"
+ECB_LICENCE = "ECB statistics: reuse with source acknowledgement"
+
 
 @dataclass(frozen=True)
 class Series:
@@ -15,6 +18,9 @@ class Series:
     # Trading calendar for completeness and freshness checks: an exchange_calendars code,
     # "weekdays", or None (no completeness check, freshness on weekdays).
     calendar: str | None = None
+    role: str = "book risk factor"  # book risk factor | model input | cross-check
+    licence: str = YAHOO_LICENCE
+    publish_level: bool = False  # True when the licence allows publishing the raw level
 
 
 CATALOG: tuple[Series, ...] = (
@@ -40,6 +46,7 @@ CATALOG: tuple[Series, ...] = (
         "USD",
         "USD per EUR",
         "weekdays",
+        role="cross-check",
     ),
     Series(
         "EURUSD",
@@ -50,6 +57,8 @@ CATALOG: tuple[Series, ...] = (
         "USD",
         "USD per EUR",
         "XPAR",
+        licence=ECB_LICENCE,
+        publish_level=True,
     ),
     Series(
         "EUR10Y_AAA",
@@ -60,9 +69,20 @@ CATALOG: tuple[Series, ...] = (
         "EUR",
         "percent per annum",
         "XPAR",
+        licence=ECB_LICENCE,
+        publish_level=True,
     ),
     Series(
-        "VIX", "Cboe Volatility Index", "fred", "VIXCLS", "volatility index", "USD", "index points", "XNYS"
+        "VIX",
+        "Cboe Volatility Index",
+        "fred",
+        "VIXCLS",
+        "volatility index",
+        "USD",
+        "index points",
+        "XNYS",
+        role="model input",
+        licence="Cboe data via FRED; raw data not redistributed",
     ),
     Series(
         "US10Y2Y",
@@ -72,6 +92,8 @@ CATALOG: tuple[Series, ...] = (
         "rates",
         "USD",
         "percentage points",
+        role="model input",
+        licence="US Treasury data via FRED; raw data not redistributed",
     ),
 )
 
