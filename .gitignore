@@ -12,3 +12,6 @@ __pycache__/
 
 # MLflow local runs
 mlruns/
+
+# Data quality results (loaded to the gold tables in Step 4)
+data/dq/
