@@ -89,9 +89,23 @@ The Parquet files are written from PostgreSQL, and the export fails if a file's 
 | `index_100` | double | Equities, gold and FX rebased to 100 on their first date |
 | `daily_return` | double | Simple daily return: equities, gold, FX and VIX |
 | `change_bp` | double | Daily change in basis points: rates |
+| `vol_22d` | double | Annualised volatility (√252 scaling) of the last 22 observed daily returns; a filled day keeps the previous value |
+| `vol_22d_bp` | double | Rates: annualised volatility of the last 22 observed daily changes, in basis points |
 | `is_filled`, `fill_reason` | boolean, text | As in silver |
 
 Key: (`date`, `instrument_id`).
+
+**`fact_correlation`**: correlation of daily moves (returns, or changes in bp for rates) between every pair of silver instruments, on days when both moved. One row per period and ordered pair, with the diagonal, so the report can draw a full matrix.
+
+| Column | Type | Description |
+|---|---|---|
+| `period`, `period_order` | text, int | A calendar year, `Last 250 days` or `Full history`, and its sort key |
+| `instrument_a`, `instrument_b` | text | To `dim_instrument` |
+| `name_a`, `name_b` | text | Instrument names, for display |
+| `correlation` | double | Pearson correlation; empty below 22 common days |
+| `n_days` | int | Days when both instruments moved |
+
+Key: (`period`, `instrument_a`, `instrument_b`). The rate series' correlation is with yield changes: a positive value means the bond price moves the other way.
 
 **`dim_position`**: the fictional 10 M€ book (defined in [`pipeline/book.py`](../pipeline/book.py)).
 
@@ -130,6 +144,7 @@ Key: (`date`, `position_id`). Notionals are constant (daily rebalancing). Book P
 | `severity` | string | `critical` or `warning` |
 | `passed` | bool | True when no row failed |
 | `n_failed` | int64 | Number of failing rows |
+| `run_at` | timestamp (UTC) | When the run started; empty for runs recorded before 2026-10-22 |
 
 ### `dq_flags`: one row per flagged observation
 
@@ -142,7 +157,18 @@ Key: (`date`, `position_id`). Notionals are constant (daily rebalancing). Book P
 | `value` | float64 | Flagged value (empty for a missing day). In `gold.fact_dq_flags` it is kept only for series whose licence allows publishing levels (the ECB series) |
 | `detail` | string | Human-readable reason; it never repeats a level that may not be published |
 
-Both tables are written to `data/dq/` by the quality gate (a re-run with the same `run_id` replaces that run's rows), then loaded into `gold.fact_dq` and `gold.fact_dq_flags` and exported with the other gold tables.
+### `dq_freshness`: one row per run and series
+
+| Column | Type | Description |
+|---|---|---|
+| `run_id`, `run_at`, `date` | text, timestamp, date | Run identifier, start time (UTC) and as-of date |
+| `source`, `instrument` | string | Series checked |
+| `last_date` | datetime64[ns] | Last observation; empty when the source delivered nothing |
+| `expected_date` | datetime64[ns] | Last session of the series' calendar before the as-of date |
+| `sessions_late` | Int64 | Sessions between the two; empty when there is no data |
+| `is_late` | bool | True when at least one session is missing, or no data at all |
+
+The three tables are written to `data/dq/` by the quality gate (a re-run with the same `run_id` replaces that run's rows), then loaded into `gold.fact_dq`, `gold.fact_dq_flags` and `gold.fact_freshness` with an `is_latest_run` flag (the run with the most recent `run_at`), and exported with the other gold tables.
 
 ## Quality rules
 
