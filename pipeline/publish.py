@@ -64,13 +64,18 @@ def load_quality_results(conn: Connection, dq_dir: Path) -> None:
 
 
 def read_for_parquet(conn: Connection, schema: str, table: str, typed_columns: list) -> pd.DataFrame:
-    """Read a table and keep its SQL types in Parquet: dates as date32, integers as integers even with NULLs."""
+    """Read a table for Parquet: dates as date32, integers as integers even with NULLs, timestamps as plain UTC."""
     frame = pd.read_sql_table(table, conn, schema=schema)
     for _, column, data_type in [c for c in typed_columns if c[0] == table]:
         if data_type == "date":
             frame[column] = pd.to_datetime(frame[column]).dt.date  # date32 is read as a Date by Power BI
         else:
             frame[column] = frame[column].astype("Int64")
+    for column in frame.columns:
+        if isinstance(
+            frame[column].dtype, pd.DatetimeTZDtype
+        ):  # Power BI handles zone-free timestamps reliably
+            frame[column] = frame[column].dt.tz_convert("UTC").dt.tz_localize(None)
     return frame
 
 
