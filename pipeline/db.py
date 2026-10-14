@@ -1,13 +1,12 @@
 """PostgreSQL connection and helpers."""
 
 import os
-from pathlib import Path
 
 import pandas as pd
 from sqlalchemy import Connection, Engine, create_engine, text
 from sqlalchemy.engine import URL
 
-SQL_DIR = Path(__file__).resolve().parents[1] / "sql"
+from pipeline import config
 
 
 def engine() -> Engine:
@@ -28,8 +27,8 @@ def engine() -> Engine:
 
 
 def run_sql_file(conn: Connection, name: str) -> None:
-    """Execute the statements of sql/<name> one by one. Comments are removed first, so they may hold semicolons."""
-    code = "\n".join(line.split("--")[0] for line in (SQL_DIR / name).read_text().splitlines())
+    """Execute sql/<name> statement by statement; comments are stripped first, so never put -- in a string literal."""
+    code = "\n".join(line.split("--")[0] for line in (config.SQL_DIR / name).read_text().splitlines())
     for statement in code.split(";"):
         if statement.strip():
             conn.execute(text(statement))

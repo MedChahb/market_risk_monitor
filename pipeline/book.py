@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 
-from pipeline import db
+from pipeline import config, db
 
 log = logging.getLogger("book")
 
@@ -68,30 +68,29 @@ def position_pnl(levels: pd.DataFrame) -> pd.DataFrame:
     """One row per day and position, on days when every position can be valued."""
     fx = usd_eur_return(levels)
     frames = []
-    for p in BOOK:
-        r_local = local_return(levels, p)
-        r_fx = fx if p.currency == "USD" else pd.Series(0.0, index=levels.index)
+    for position in BOOK:
+        r_local = local_return(levels, position)
+        r_fx = fx if position.currency == "USD" else pd.Series(0.0, index=levels.index)
         r_eur = (1 + r_local) * (1 + r_fx) - 1
         frames.append(
             pd.DataFrame(
                 {
                     "date": levels.index,
-                    "position_id": p.position_id,
+                    "position_id": position.position_id,
                     "return_local": r_local.to_numpy(),
                     "return_fx": r_fx.to_numpy(),
                     "return_eur": r_eur.to_numpy(),
-                    "pnl_eur": (p.notional_eur * r_eur).to_numpy(),
-                    "pnl_fx_eur": (p.notional_eur * (1 + r_local) * r_fx).to_numpy(),  # FX part of the P&L
+                    "pnl_eur": (position.notional_eur * r_eur).to_numpy(),
+                    "pnl_fx_eur": (
+                        position.notional_eur * (1 + r_local) * r_fx
+                    ).to_numpy(),  # the dollar's part
                 }
             )
         )
     pnl = pd.concat(frames, ignore_index=True)
-    complete = pnl.pivot(index="date", columns="position_id", values="return_eur").dropna().index
-    return (
-        pnl[pnl["date"].isin(complete)]
-        .sort_values(["date", "position_id"])
-        .reset_index(drop=True)[PNL_COLUMNS]
-    )
+    complete_days = pnl.pivot(index="date", columns="position_id", values="return_eur").dropna().index
+    pnl = pnl[pnl["date"].isin(complete_days)]
+    return pnl.sort_values(["date", "position_id"]).reset_index(drop=True)[PNL_COLUMNS]
 
 
 def book_pnl(pnl: pd.DataFrame) -> pd.DataFrame:
@@ -100,27 +99,28 @@ def book_pnl(pnl: pd.DataFrame) -> pd.DataFrame:
     return book.assign(return_book=book["pnl_eur"] / BOOK_NOTIONAL)
 
 
-def dim_position() -> pd.DataFrame:
+def build_dim_position() -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
-                "position_id": p.position_id,
-                "name": p.name,
-                "notional_eur": p.notional_eur,
-                "instrument_id": p.instrument,
-                "currency": p.currency,
-                "kind": p.kind,
+                "position_id": position.position_id,
+                "name": position.name,
+                "notional_eur": position.notional_eur,
+                "instrument_id": position.instrument,
+                "currency": position.currency,
+                "kind": position.kind,
             }
-            for p in BOOK
+            for position in BOOK
         ]
     )
 
 
 def main(argv: list[str] | None = None) -> int:
-    argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description="Compute the book's daily P&L from silver and load it into gold."
-    ).parse_args(argv)
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    )
+    parser.parse_args(argv)
+    logging.basicConfig(level=logging.INFO, format=config.LOG_FORMAT)
     load_dotenv()
 
     engine = db.engine()
@@ -132,14 +132,20 @@ def main(argv: list[str] | None = None) -> int:
     pnl = position_pnl(levels)
     with engine.begin() as conn:
         db.run_sql_file(conn, "book.sql")
-        db.insert(conn, "gold", "dim_position", dim_position())
+        db.insert(conn, "gold", "dim_position", build_dim_position())
         db.insert(conn, "gold", "fact_pnl", pnl)
 
     book = book_pnl(pnl)
+    first, last = f"{book.index.min():%Y-%m-%d}", f"{book.index.max():%Y-%m-%d}"
+    n_positions = pnl["position_id"].nunique()
     log.info(
         "gold.fact_pnl: %d rows, %d positions, %d days, %s to %s",
-        len(pnl), pnl["position_id"].nunique(), len(book), f"{book.index.min():%Y-%m-%d}", f"{book.index.max():%Y-%m-%d}",
-    )  # fmt: skip
+        len(pnl),
+        n_positions,
+        len(book),
+        first,
+        last,
+    )
     for day, row in book.nsmallest(5, "pnl_eur").iterrows():
         log.info(
             "worst day %s: %s EUR (%+.2f%%)",
