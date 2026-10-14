@@ -26,16 +26,17 @@ def test_book_holds_ten_million_euros_in_six_positions():
     assert book.BOOK_NOTIONAL == 10_000_000 and len(book.BOOK) == 6
 
 
-def test_zero_coupon_bond_reprices_with_the_yield():
-    assert book.zero_coupon_price(2.5) == pytest.approx(78.1198, abs=1e-4)
-    assert book.zero_coupon_price(3.5) / book.zero_coupon_price(2.5) - 1 == pytest.approx(-0.092524, abs=1e-6)
+def test_zero_coupon_bond_uses_continuous_compounding_like_the_ecb_curve():
+    assert book.zero_coupon_price(2.5) == pytest.approx(100 * np.exp(-0.25))  # 77.8801
+    assert book.zero_coupon_price(0.0) == 100
+    assert book.zero_coupon_price(-0.5) > 100  # negative yields: the bond is worth more than it repays
 
 
 def test_bond_loses_when_the_yield_rises():
     pnl = book.position_pnl(levels(EUR10Y_AAA=[2.5, 3.5, 3.5, 3.5]))
     bond = position(pnl, "EUR_ZC10Y", 1)
-    assert bond["return_eur"] == pytest.approx(-0.092524, abs=1e-6)
-    assert bond["pnl_eur"] == pytest.approx(2_000_000 * -0.092524, abs=1)
+    assert bond["return_eur"] == pytest.approx(np.exp(-0.1) - 1)  # -9.52% for +100 bp over 10 years
+    assert bond["pnl_eur"] == pytest.approx(2_000_000 * (np.exp(-0.1) - 1))
 
 
 def test_usd_position_combines_the_asset_and_the_dollar():
