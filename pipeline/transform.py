@@ -33,6 +33,7 @@ FACT_MARKET_COLUMNS = [
     "change_bp",
     "vol_22d",
     "vol_22d_bp",
+    "drawdown",
     "is_filled",
     "fill_reason",
 ]
@@ -111,6 +112,7 @@ def build_dim_instrument() -> pd.DataFrame:
             {
                 "instrument_id": series.instrument,
                 "name": series.name,
+                "short_name": series.short_name,
                 "asset_class": series.asset_class,
                 "currency": series.currency,
                 "unit": series.unit,
@@ -153,6 +155,7 @@ def build_fact_market(silver: pd.DataFrame) -> pd.DataFrame:
                 change_bp=change_bp,
                 vol_22d=rolling_volatility(daily_return, is_filled) if has_returns else missing,
                 vol_22d_bp=rolling_volatility(change_bp, is_filled) if is_rate else missing,
+                drawdown=values / values.cummax() - 1 if price_like else missing,
             )
         )
     return pd.concat(frames, ignore_index=True)[FACT_MARKET_COLUMNS]
@@ -169,7 +172,7 @@ def build_fact_correlation(fact_market: pd.DataFrame) -> pd.DataFrame:
     moves = daily_moves(fact_market)
     periods = [(str(year), moves.loc[str(year)]) for year in sorted(moves.index.year.unique())]
     periods += [(f"Last {CORRELATION_WINDOW} days", moves.tail(CORRELATION_WINDOW)), ("Full history", moves)]
-    names = {series.instrument: series.name for series in CATALOG}
+    names = {series.instrument: series.short_name for series in CATALOG}
     frames = []
     for order, (period, window) in enumerate(periods):
         moved = window.notna().astype(int)

@@ -10,6 +10,7 @@ ECB_LICENCE = "ECB statistics: reuse with source acknowledgement"
 class Series:
     instrument: str
     name: str
+    short_name: str  # label for charts and matrix headers
     source: str  # yahoo | ecb | fred
     key: str  # Yahoo ticker, ECB "flow/key", or FRED series id
     asset_class: str
@@ -25,6 +26,7 @@ CATALOG: tuple[Series, ...] = (
     Series(
         instrument="CAC40",
         name="CAC 40",
+        short_name="CAC 40",
         source="yahoo",
         key="^FCHI",
         asset_class="equity index",
@@ -35,6 +37,7 @@ CATALOG: tuple[Series, ...] = (
     Series(
         instrument="SX5E",
         name="Euro Stoxx 50",
+        short_name="Euro Stoxx 50",
         source="yahoo",
         key="^STOXX50E",
         asset_class="equity index",
@@ -45,6 +48,7 @@ CATALOG: tuple[Series, ...] = (
     Series(
         instrument="SPX",
         name="S&P 500",
+        short_name="S&P 500",
         source="yahoo",
         key="^GSPC",
         asset_class="equity index",
@@ -55,6 +59,7 @@ CATALOG: tuple[Series, ...] = (
     Series(
         instrument="GOLD",
         name="Gold front-month future (COMEX)",
+        short_name="Gold",
         source="yahoo",
         key="GC=F",
         asset_class="commodity",
@@ -65,6 +70,7 @@ CATALOG: tuple[Series, ...] = (
     Series(
         instrument="EURUSD_YAHOO",
         name="EUR/USD (Yahoo, cross-check)",
+        short_name="EUR/USD (Yahoo)",
         source="yahoo",
         key="EURUSD=X",
         asset_class="fx",
@@ -76,6 +82,7 @@ CATALOG: tuple[Series, ...] = (
     Series(
         instrument="EURUSD",
         name="EUR/USD ECB reference rate",
+        short_name="EUR/USD",
         source="ecb",
         key="EXR/D.USD.EUR.SP00.A",
         asset_class="fx",
@@ -88,6 +95,7 @@ CATALOG: tuple[Series, ...] = (
     Series(
         instrument="EUR10Y_AAA",
         name="Euro area AAA 10-year spot yield",
+        short_name="EUR AAA 10Y",
         source="ecb",
         key="YC/B.U2.EUR.4F.G_N_A.SV_C_YM.SR_10Y",
         asset_class="rates",
@@ -100,6 +108,7 @@ CATALOG: tuple[Series, ...] = (
     Series(
         instrument="VIX",
         name="Cboe Volatility Index",
+        short_name="VIX",
         source="fred",
         key="VIXCLS",
         asset_class="volatility index",
@@ -112,6 +121,7 @@ CATALOG: tuple[Series, ...] = (
     Series(
         instrument="US10Y2Y",
         name="US 10-year minus 2-year Treasury yield",
+        short_name="US 10Y-2Y",
         source="fred",
         key="T10Y2Y",
         asset_class="rates",

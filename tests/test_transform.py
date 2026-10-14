@@ -125,3 +125,13 @@ def test_correlation_table_covers_every_pair_and_period():
     assert len(full) == 4 and full.loc[("CAC40", "SX5E"), "correlation"] == pytest.approx(1.0)
     assert full.loc[("CAC40", "SX5E"), "n_days"] == len(xpar) - 1  # the first day has no return
     assert full.loc[("SX5E", "CAC40"), "name_a"] == "Euro Stoxx 50"
+    assert full.loc[("SX5E", "CAC40"), "name_b"] == "CAC 40"
+
+
+def test_drawdown_is_the_fall_below_the_highest_level_so_far():
+    prices = [100.0, 120.0, 90.0, 130.0, 117.0] + [117.0] * (len(XPAR) - 5)
+    silver = silver_for(raw_table("CAC40", XPAR, prices), ecb=raw_table("EUR10Y_AAA", XPAR))
+    fact = transform.build_fact_market(silver)
+    cac = fact[fact["instrument_id"] == "CAC40"].set_index("date")["drawdown"]
+    assert cac[XPAR[:5]].tolist() == pytest.approx([0.0, 0.0, -0.25, 0.0, -0.1])
+    assert fact.loc[fact["instrument_id"] == "EUR10Y_AAA", "drawdown"].isna().all()  # a yield has no drawdown
