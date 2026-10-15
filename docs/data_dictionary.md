@@ -74,7 +74,7 @@ The Parquet files are written from PostgreSQL, and the export fails if a file's 
 | `trading_day_index` | int | Number of trading days up to and including this date (a weekend keeps Friday's value); empty outside the data range. Used for rolling windows such as the last 250 trading days |
 | `is_month_end` | boolean | Last trading day of the month |
 
-**`dim_instrument`**: one row per catalog series: `instrument_id` (key), `name`, `asset_class`, `currency`, `unit`, `role`, `source_id` (to `dim_source`), `source_key`, `calendar`, `licence`, `publish_level`.
+**`dim_instrument`**: one row per catalog series: `instrument_id` (key), `name`, `short_name` (label for charts and matrix headers), `asset_class`, `currency`, `unit`, `role`, `source_id` (to `dim_source`), `source_key`, `calendar`, `licence`, `publish_level`.
 
 **`dim_source`**: `source_id` (key), `name`, `url`, `licence`.
 
@@ -92,6 +92,7 @@ The Parquet files are written from PostgreSQL, and the export fails if a file's 
 | `change_bp` | double | Daily change in basis points: rates |
 | `vol_22d` | double | Annualised volatility (√252 scaling) of the last 22 observed daily returns; a filled day keeps the previous value |
 | `vol_22d_bp` | double | Rates: annualised volatility of the last 22 observed daily changes, in basis points |
+| `drawdown` | double | Equities, gold and FX: fall below the highest level since the first date (0 at a new high) |
 | `is_filled`, `fill_reason` | boolean, text | As in silver |
 
 Key: (`date`, `instrument_id`).
@@ -102,7 +103,7 @@ Key: (`date`, `instrument_id`).
 |---|---|---|
 | `period`, `period_order` | text, int | A calendar year, `Last 250 days` or `Full history`, and its sort key |
 | `instrument_a`, `instrument_b` | text | To `dim_instrument` |
-| `name_a`, `name_b` | text | Instrument names, for display |
+| `name_a`, `name_b` | text | Short instrument names, for display |
 | `correlation` | double | Pearson correlation; empty below 22 common days |
 | `n_days` | int | Days when both instruments moved |
 
@@ -132,6 +133,19 @@ Key: (`period`, `instrument_a`, `instrument_b`). The rate series' correlation is
 | `pnl_fx_eur` | double | Part of the P&L due to the dollar: `notional_eur × (1 + return_local) × return_fx` |
 
 Key: (`date`, `position_id`). Notionals are constant (daily rebalancing). Book P&L = sum of `pnl_eur` per day; book return = book P&L / 10 M€. The P&L excludes trading, fees, carry and roll-down.
+
+**`fact_forecast`**: out-of-sample volatility forecasts from 2018, written by [`pipeline/vol_models.py`](../pipeline/vol_models.py) to `data/forecasts/` and reloaded in full at every publish. Series: each position's EUR return and the book return, in percent.
+
+| Column | Type | Description |
+|---|---|---|
+| `date` | date | Forecast made at this day's close; to `dim_date` |
+| `series_id` | text | A `position_id` of `dim_position`, or `book` |
+| `model_id` | text | To `dim_model`: `ewma`, `garch`, `har`, `xgboost`, `gru` |
+| `forecast_var` | double | Forecast of the mean daily variance of the next 5 trading days, in percent squared (annualised volatility in percent: `sqrt(252 × forecast_var)`) |
+| `realised_var` | double | The same quantity measured afterwards: mean squared return of the next 5 days; empty for the last 5 days |
+| `inputs` | text | Features the model used (`returns` for EWMA and GARCH) |
+
+Key: (`date`, `series_id`, `model_id`). Models are refitted at the start of each month on all past data; supervised models leave out the last 5 training rows, whose targets overlap the forecast month.
 
 ### `fact_dq`: one row per run, instrument and rule
 
