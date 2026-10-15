@@ -1,4 +1,4 @@
-"""Load the data quality results into gold, then export every gold table to data/gold/<table>.parquet.
+"""Load the quality results and the model forecasts into gold, then export every gold table to Parquet.
 
 Files are exported from PostgreSQL, not from memory, so the report reads exactly what the database
 holds; the run fails if a file's row count differs from its table's. Flagged values are kept only
@@ -63,6 +63,15 @@ def load_quality_results(conn: Connection, dq_dir: Path) -> None:
         db.insert(conn, "gold", table, frame.assign(is_latest_run=frame["run_id"] == latest))
 
 
+def load_forecasts(conn: Connection, forecast_dir: Path) -> None:
+    db.run_sql_file(conn, "forecast.sql")
+    path = forecast_dir / "vol_forecasts.parquet"
+    if not path.exists():
+        log.warning("%s not found: gold.fact_forecast left empty", path)
+        return
+    db.insert(conn, "gold", "fact_forecast", pd.read_parquet(path))
+
+
 def read_for_parquet(conn: Connection, schema: str, table: str, typed_columns: list) -> pd.DataFrame:
     """Read a table for Parquet: dates as date32, integers as integers even with NULLs, timestamps as plain UTC."""
     frame = pd.read_sql_table(table, conn, schema=schema)
@@ -103,9 +112,10 @@ def export_schema(conn: Connection, schema: str, out_dir: Path) -> pd.DataFrame:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Load quality results and export the gold tables to Parquet."
+        description="Load quality results and forecasts, and export the gold tables to Parquet."
     )
     parser.add_argument("--dq-dir", type=Path, default=config.DQ_DIR)
+    parser.add_argument("--forecast-dir", type=Path, default=config.FORECAST_DIR)
     parser.add_argument("--gold-dir", type=Path, default=config.GOLD_DIR)
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format=config.LOG_FORMAT)
@@ -114,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     engine = db.engine()
     with engine.begin() as conn:
         load_quality_results(conn, args.dq_dir)
+        load_forecasts(conn, args.forecast_dir)
     with engine.connect() as conn:
         counts = export_schema(conn, "gold", args.gold_dir)
     for row in counts.itertuples():
