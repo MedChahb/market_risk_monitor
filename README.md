@@ -11,7 +11,7 @@ The goal: a nightly Python pipeline that collects and checks market data, foreca
 ```mermaid
 flowchart LR
     Y[Yahoo Finance<br/>indices, gold, EUR/USD check] --> R[(raw Parquet<br/>data/raw)]
-    E[ECB Data Portal<br/>EUR/USD, AAA 10y yield] --> R
+    E[ECB Data Portal<br/>EUR/USD, AAA 2y and 10y yields] --> R
     F[FRED<br/>VIX, US 10y-2y] --> R
     R --> Q{quality gate<br/>pandera + 9 rules}
     Q -->|critical failure| X[pipeline stops]
@@ -25,7 +25,7 @@ flowchart LR
     P --> BI[Power BI report]
 ```
 
-Nine daily series from 2008, described with their units, calendars, licences and known issues in the [data dictionary](docs/data_dictionary.md). Critical rules (schema, duplicate keys, non-positive prices, yields out of range) stop the pipeline; warnings (missing sessions, stale values, moves above 15%, late data, Yahoo vs ECB EUR/USD gap above 2%) are stored and reported.
+Ten daily series from 2008, described with their units, calendars, licences and known issues in the [data dictionary](docs/data_dictionary.md). Critical rules (schema, duplicate keys, non-positive prices, yields out of range) stop the pipeline; warnings (missing sessions, stale values, moves above 15%, late data, Yahoo vs ECB EUR/USD gap above 2%) are stored and reported.
 
 Silver aligns every series on the days when Paris or New York trades, carrying the last value forward on a market holiday or a feed gap, with the reason recorded. Gold is a star schema (`fact_market`, `fact_dq` around `dim_date`, `dim_instrument` and reference dimensions) with a trading-day index for rolling windows; it is exported to Parquet for the report, with raw levels only where the source licence allows it.
 

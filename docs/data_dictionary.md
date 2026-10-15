@@ -13,6 +13,7 @@ Owner of every dataset: the project maintainer. Series metadata is defined once 
 | `EURUSD_YAHOO` | EUR/USD, cross-check only | Yahoo Finance | `EURUSD=X` | FX | USD per EUR | Weekdays | Yahoo terms: personal use; raw data not redistributed |
 | `EURUSD` | EUR/USD ECB reference rate | ECB Data Portal | `EXR` / `D.USD.EUR.SP00.A` | FX | USD per EUR | XPAR | ECB statistics: reuse with source acknowledgement |
 | `EUR10Y_AAA` | Euro area AAA 10-year spot yield | ECB Data Portal | `YC` / `B.U2.EUR.4F.G_N_A.SV_C_YM.SR_10Y` | Rates | Percent per annum | XPAR | ECB statistics: reuse with source acknowledgement |
+| `EUR2Y_AAA` | Euro area AAA 2-year spot yield (model input: euro curve slope) | ECB Data Portal | `YC` / `B.U2.EUR.4F.G_N_A.SV_C_YM.SR_2Y` | Rates | Percent per annum | XPAR | ECB statistics: reuse with source acknowledgement |
 | `VIX` | Cboe Volatility Index | FRED | `VIXCLS` | Volatility index | Index points | XNYS | Cboe data via FRED; raw data not redistributed |
 | `US10Y2Y` | US 10-year minus 2-year Treasury yield | FRED | `T10Y2Y` | Rates | Percentage points | None (US bond market) | US Treasury data via FRED; raw data not redistributed |
 
