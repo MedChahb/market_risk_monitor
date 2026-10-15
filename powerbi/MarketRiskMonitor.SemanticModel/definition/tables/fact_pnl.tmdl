@@ -1,0 +1,79 @@
+table fact_pnl
+	lineageTag: 172c8a45-1e36-5ace-8c2f-bfc78fd9d150
+
+	column date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: 26592080-dc4e-534a-9690-1e9a1a65d6bd
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column position_id
+		dataType: string
+		isHidden
+		lineageTag: f5b75643-4e80-557b-be87-aab7a7b78274
+		summarizeBy: none
+		sourceColumn: position_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column return_local
+		dataType: double
+		isHidden
+		lineageTag: 76796253-5993-5099-aa97-9b0e3ad1b38a
+		summarizeBy: none
+		sourceColumn: return_local
+
+		annotation SummarizationSetBy = Automatic
+
+	column return_fx
+		dataType: double
+		isHidden
+		lineageTag: 9412e0fb-26c5-56e1-8c48-aa4b2d3b5af1
+		summarizeBy: none
+		sourceColumn: return_fx
+
+		annotation SummarizationSetBy = Automatic
+
+	column return_eur
+		dataType: double
+		isHidden
+		lineageTag: 0b80d1a0-4170-5cd9-84c0-01d21e449c68
+		summarizeBy: none
+		sourceColumn: return_eur
+
+		annotation SummarizationSetBy = Automatic
+
+	column pnl_eur
+		dataType: double
+		isHidden
+		lineageTag: e769ce7a-24e7-54fa-931c-9430ba1a49e3
+		summarizeBy: none
+		sourceColumn: pnl_eur
+
+		annotation SummarizationSetBy = Automatic
+
+	column pnl_fx_eur
+		dataType: double
+		isHidden
+		lineageTag: 2d8e0c1c-f025-59ac-940a-b68bc359a01a
+		summarizeBy: none
+		sourceColumn: pnl_fx_eur
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_pnl = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_pnl.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"date", type date}, {"position_id", type text}, {"return_local", type number}, {"return_fx", type number}, {"return_eur", type number}, {"pnl_eur", type number}, {"pnl_fx_eur", type number}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

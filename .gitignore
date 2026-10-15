@@ -15,3 +15,13 @@ mlruns/
 
 # Data quality results (loaded to the gold tables in Step 4)
 data/dq/
+
+# Power BI binaries: attached to GitHub releases, never committed (the PBIP project is the source)
+*.pbix
+
+# Power BI Desktop local state (per user and machine)
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+
+# Power BI Desktop TMDL view scratch scripts
+**/TMDLScripts/

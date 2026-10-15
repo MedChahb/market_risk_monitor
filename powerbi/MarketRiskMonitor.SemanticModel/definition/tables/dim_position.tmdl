@@ -1,0 +1,65 @@
+table dim_position
+	lineageTag: 30d8dc35-8f58-5739-b8e7-e9ecc844444a
+
+	column position_id
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: 3f8f11cf-807f-54a6-a7f3-f7c39f3fa321
+		summarizeBy: none
+		sourceColumn: position_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Position
+		dataType: string
+		lineageTag: 7c26ae98-874c-531e-b925-a675c9ea3df0
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Notional EUR'
+		dataType: double
+		formatString: #,##0
+		lineageTag: d47ec99b-95e8-59c7-a562-bee467a6f3eb
+		summarizeBy: none
+		sourceColumn: notional_eur
+
+		annotation SummarizationSetBy = Automatic
+
+	column instrument_id
+		dataType: string
+		isHidden
+		lineageTag: 830d2a2d-5739-535c-850b-3dd57066727e
+		summarizeBy: none
+		sourceColumn: instrument_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Currency
+		dataType: string
+		lineageTag: 71905a79-82f8-5e13-a75d-a65840b3e49c
+		summarizeBy: none
+		sourceColumn: currency
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kind
+		dataType: string
+		lineageTag: 3f4d35a2-6085-544d-abc8-eaffc52eb104
+		summarizeBy: none
+		sourceColumn: kind
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_position = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\dim_position.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"position_id", type text}, {"name", type text}, {"notional_eur", type number}, {"instrument_id", type text}, {"currency", type text}, {"kind", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

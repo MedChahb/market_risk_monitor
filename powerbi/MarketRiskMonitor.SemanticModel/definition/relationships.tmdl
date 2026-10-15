@@ -1,0 +1,43 @@
+relationship bc11150c-288d-5347-a692-76082765aa86
+	fromColumn: fact_market.date
+	toColumn: dim_date.Date
+
+relationship 9695cc71-5660-5bb7-8cd1-5b4d7435b39e
+	fromColumn: fact_market.instrument_id
+	toColumn: dim_instrument.instrument_id
+
+relationship 44e9f394-967e-5014-9fda-dde99e81f78b
+	fromColumn: fact_pnl.date
+	toColumn: dim_date.Date
+
+relationship e6a94da4-cc5a-55d2-8a71-19a6506a3137
+	fromColumn: fact_pnl.position_id
+	toColumn: dim_position.position_id
+
+relationship 2c0ceeaf-b082-5d6c-a500-3169ff33bc06
+	fromColumn: fact_dq.'Run Date'
+	toColumn: dim_date.Date
+
+relationship 3daa1415-b69e-59d3-a175-34995e047292
+	fromColumn: fact_dq.source
+	toColumn: dim_source.source_id
+
+relationship 918aab41-bc02-5785-8544-0d45eac8c495
+	fromColumn: fact_dq.instrument
+	toColumn: dim_instrument.instrument_id
+
+relationship 6427e53e-3c16-5415-b978-7610ced06285
+	fromColumn: fact_dq_flags.source
+	toColumn: dim_source.source_id
+
+relationship d0e812f9-f04d-567a-b7fb-d774b39611ac
+	fromColumn: fact_dq_flags.instrument
+	toColumn: dim_instrument.instrument_id
+
+relationship be7a3282-35c7-564c-8cc0-a8ca3544a4b8
+	fromColumn: fact_freshness.source
+	toColumn: dim_source.source_id
+
+relationship 9d9cb5f6-030a-523e-aaf4-949e6c44bf92
+	fromColumn: fact_freshness.instrument
+	toColumn: dim_instrument.instrument_id

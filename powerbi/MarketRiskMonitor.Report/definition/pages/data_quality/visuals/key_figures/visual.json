@@ -1,0 +1,108 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "key_figures",
+  "position": {
+    "x": 32,
+    "y": 136,
+    "z": 1000,
+    "width": 1856,
+    "height": 120,
+    "tabOrder": 1000
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Critical Failures (latest run)"
+                }
+              },
+              "queryRef": "_Measures.Critical Failures (latest run)",
+              "nativeQueryRef": "Critical Failures (latest run)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Warnings (latest run)"
+                }
+              },
+              "queryRef": "_Measures.Warnings (latest run)",
+              "nativeQueryRef": "Warnings (latest run)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Series Late (latest run)"
+                }
+              },
+              "queryRef": "_Measures.Series Late (latest run)",
+              "nativeQueryRef": "Series Late (latest run)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Last Quality Run (UTC)"
+                }
+              },
+              "queryRef": "_Measures.Last Quality Run (UTC)",
+              "nativeQueryRef": "Last Quality Run (UTC)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Key figures of the latest quality run'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

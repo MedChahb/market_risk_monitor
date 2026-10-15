@@ -1,0 +1,70 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "name": "correlation",
+  "displayName": "Correlation",
+  "displayOption": "FitToPage",
+  "height": 1080,
+  "width": 1920,
+  "visualInteractions": [
+    {
+      "source": "pair_a",
+      "target": "correlation_matrix",
+      "type": "NoFilter"
+    },
+    {
+      "source": "pair_b",
+      "target": "correlation_matrix",
+      "type": "NoFilter"
+    },
+    {
+      "source": "period",
+      "target": "correlation_by_year",
+      "type": "NoFilter"
+    },
+    {
+      "source": "period",
+      "target": "correlation_with_yield",
+      "type": "NoFilter"
+    },
+    {
+      "source": "pair_a",
+      "target": "correlation_with_yield",
+      "type": "NoFilter"
+    },
+    {
+      "source": "pair_b",
+      "target": "correlation_with_yield",
+      "type": "NoFilter"
+    },
+    {
+      "source": "correlation_matrix",
+      "target": "correlation_by_year",
+      "type": "NoFilter"
+    },
+    {
+      "source": "correlation_matrix",
+      "target": "correlation_with_yield",
+      "type": "NoFilter"
+    },
+    {
+      "source": "correlation_by_year",
+      "target": "correlation_matrix",
+      "type": "NoFilter"
+    },
+    {
+      "source": "correlation_by_year",
+      "target": "correlation_with_yield",
+      "type": "NoFilter"
+    },
+    {
+      "source": "correlation_with_yield",
+      "target": "correlation_matrix",
+      "type": "NoFilter"
+    },
+    {
+      "source": "correlation_with_yield",
+      "target": "correlation_by_year",
+      "type": "NoFilter"
+    }
+  ]
+}
