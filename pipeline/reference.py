@@ -31,14 +31,24 @@ MODELS = [
     },
     {"model_id": "garch", "name": "GARCH(1,1)", "description": "GARCH(1,1) with Student-t innovations"},
     {
+        "model_id": "gjr",
+        "name": "GJR-GARCH(1,1)",
+        "description": "GARCH(1,1) with a leverage term (Glosten, Jagannathan and Runkle) and Student-t innovations",
+    },
+    {
         "model_id": "har",
         "name": "HAR",
-        "description": "Regression on daily, weekly and monthly realised variance",
+        "description": "Corsi regression on the daily, weekly and monthly mean of squared returns",
+    },
+    {
+        "model_id": "har_range",
+        "name": "HAR (range)",
+        "description": "HAR on range-based variances from open, high, low and close (Garman-Klass, Yang-Zhang)",
     },
     {
         "model_id": "xgboost",
         "name": "XGBoost",
-        "description": "Gradient-boosted trees on HAR features, VIX, curve slope",
+        "description": "Gradient-boosted trees on HAR and range features, curve slopes and VIX when available",
     },
     {"model_id": "gru", "name": "GRU", "description": "Recurrent network on 22-day sequences"},
 ]
