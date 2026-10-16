@@ -135,3 +135,39 @@ def test_drawdown_is_the_fall_below_the_highest_level_so_far():
     cac = fact[fact["instrument_id"] == "CAC40"].set_index("date")["drawdown"]
     assert cac[XPAR[:5]].tolist() == pytest.approx([0.0, 0.0, -0.25, 0.0, -0.1])
     assert fact.loc[fact["instrument_id"] == "EUR10Y_AAA", "drawdown"].isna().all()  # a yield has no drawdown
+
+
+def test_range_variance_adds_the_overnight_gap_to_garman_klass():
+    prices = pd.DataFrame(
+        {"open": [100.0, 102.0], "high": [101.0, 104.0], "low": [99.0, 101.0], "close": [100.0, 103.0]},
+        index=pd.to_datetime(["2026-05-04", "2026-05-05"]),
+    )
+    estimate = transform.range_variance(prices)
+    expected = (
+        np.log(102 / 100) ** 2 + 0.5 * np.log(104 / 101) ** 2 - (2 * np.log(2) - 1) * np.log(103 / 102) ** 2
+    )
+    assert len(estimate) == 1  # the first day has no previous close
+    assert estimate["range_variance"].iloc[0] == pytest.approx(expected * 1e4)
+    assert not estimate["is_fallback"].iloc[0]
+
+
+def test_inconsistent_prices_fall_back_to_the_squared_close_to_close_return():
+    prices = pd.DataFrame(
+        {"open": [100.0, 102.0], "high": [101.0, 102.5], "low": [99.0, 101.0], "close": [100.0, 103.0]},
+        index=pd.to_datetime(["2026-05-04", "2026-05-05"]),
+    )  # the high of 102.5 is below the close of 103
+    estimate = transform.range_variance(prices)
+    assert estimate["is_fallback"].iloc[0]
+    assert estimate["range_variance"].iloc[0] == pytest.approx(np.log(103 / 100) ** 2 * 1e4)
+
+
+def test_daily_range_covers_the_yahoo_series_of_silver_only():
+    days = XPAR[:5]
+    rows = []
+    for instrument in ("CAC40", "EURUSD_YAHOO"):
+        for field, values in [("open", 100.0), ("high", 101.0), ("low", 99.0), ("close", 100.5)]:
+            table = raw_table(instrument, days, np.full(len(days), values))
+            rows.append(table.assign(field=field))
+    daily_range = transform.build_daily_range(pd.concat(rows, ignore_index=True))
+    assert set(daily_range["instrument_id"]) == {"CAC40"}  # the cross-check series stays out
+    assert len(daily_range) == len(days) - 1 and (daily_range["range_variance"] > 0).all()

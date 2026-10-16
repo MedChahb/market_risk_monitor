@@ -28,3 +28,10 @@ def series_values(raw: pd.DataFrame, series: Series) -> pd.Series:
     rows = raw[(raw["instrument"] == series.instrument) & (raw["field"] == main_field(series))]
     rows = rows.drop_duplicates("date", keep="last")
     return rows.set_index("date")["value"].sort_index()
+
+
+def series_fields(raw: pd.DataFrame, series: Series, fields: list[str]) -> pd.DataFrame:
+    """Several fields of one series, one column each, indexed by date; duplicates keep the last row."""
+    rows = raw[(raw["instrument"] == series.instrument) & raw["field"].isin(fields)]
+    rows = rows.drop_duplicates(["date", "field"], keep="last")
+    return rows.pivot(index="date", columns="field", values="value").reindex(columns=fields).sort_index()

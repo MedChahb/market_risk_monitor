@@ -17,6 +17,15 @@ CREATE TABLE silver.market (
     CHECK (is_filled = (fill_reason IS NOT NULL))
 );
 
+-- Range-based daily variance of the Yahoo series with open, high, low and close; observed days only.
+CREATE TABLE silver.daily_range (
+    date           DATE             NOT NULL,
+    instrument_id  TEXT             NOT NULL,
+    range_variance DOUBLE PRECISION NOT NULL CHECK (range_variance >= 0),  -- percent squared
+    is_fallback    BOOLEAN          NOT NULL,  -- inconsistent prices: squared close-to-close return used instead
+    PRIMARY KEY (date, instrument_id)
+);
+
 -- Every calendar day of the covered years, so the report can mark it as a date table.
 CREATE TABLE gold.dim_date (
     date              DATE    PRIMARY KEY,

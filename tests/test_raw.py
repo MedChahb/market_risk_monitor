@@ -32,3 +32,11 @@ def test_series_values_keeps_one_value_per_day():
     values = raw.series_values(duplicated, get("CAC40"))
     assert values.index.is_unique and len(values) == len(DAYS)
     assert values.loc[DAYS[2]] == 999.0  # the last row wins; the quality gate reports the duplicate
+
+
+def test_series_fields_returns_one_column_per_field():
+    series = get("CAC40")
+    closes = raw_table("CAC40", DAYS[:3], [1.0, 2.0, 3.0])
+    opens = closes.assign(field="open", value=[0.5, 1.5, 2.5])
+    fields = raw.series_fields(pd.concat([closes, opens]), series, ["open", "close"])
+    assert list(fields.columns) == ["open", "close"] and fields["open"].tolist() == [0.5, 1.5, 2.5]
