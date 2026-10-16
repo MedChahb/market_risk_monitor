@@ -59,6 +59,19 @@ One value per instrument and reporting day, rebuilt from the latest raw files at
 
 Key: (`date`, `instrument_id`). Values are carried forward only between an instrument's first and last observation; a filled day has a zero return and the move is captured on the next observed day.
 
+### Silver: `silver.daily_range` (PostgreSQL)
+
+Range-based daily variance of the Yahoo series of silver (CAC 40, Euro Stoxx 50, S&P 500, gold), on the days they were observed. Not exported: it is derived from Yahoo prices that may not be redistributed.
+
+| Column | Type | Description |
+|---|---|---|
+| `date` | date | Observed session |
+| `instrument_id` | text | Instrument id |
+| `range_variance` | double | Close-to-close variance in percent squared: Garman and Klass (1980) on open, high, low and close, plus the squared overnight log gap from the previous close (Yang and Zhang, 2000) |
+| `is_fallback` | boolean | True when the prices contradict each other (high not above low, or not containing open and close): the squared close-to-close log return is used instead |
+
+Key: (`date`, `instrument_id`). Fallback days on 2026-10-22: gold 233 (front-month future), Euro Stoxx 50 7, CAC 40 and S&P 500 none.
+
 ### Gold: star schema (PostgreSQL `gold`, exported to `data/gold/<table>.parquet`)
 
 The Parquet files are written from PostgreSQL, and the export fails if a file's row count differs from its table's. Dates are stored as Parquet `date32`.
