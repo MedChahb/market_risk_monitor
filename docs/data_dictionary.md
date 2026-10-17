@@ -160,6 +160,17 @@ Key: (`date`, `position_id`). Notionals are constant (daily rebalancing). Book P
 
 Key: (`date`, `series_id`, `model_id`). Models are refitted at the start of each month on all past data; supervised models leave out the last 5 training rows, whose targets overlap the forecast month.
 
+**`fact_var`**: daily 1-day VaR 99% and ES 97.5% of the book from 2012, rebuilt by [`pipeline/var.py`](../pipeline/var.py) at every run.
+
+| Column | Type | Description |
+|---|---|---|
+| `for_date` | date | Day the figure covers; it was computed at the close of the previous trading day. The last row covers the next reporting day; to `dim_date` |
+| `method_id` | text | To `dim_method`: `hs` (last 250 book P&Ls), `param_ewma`, `param_garch`, `param_champion` (normal quantiles times a 1-day EWMA, GARCH or GJR-GARCH volatility), `fhs` (500 returns standardised by GJR-GARCH, rescaled to tomorrow's forecast) |
+| `var_99_eur` | double | 1-day VaR 99% in euros, as a positive loss |
+| `es_975_eur` | double | 1-day ES 97.5% in euros, as a positive loss |
+
+Key: (`for_date`, `method_id`). GARCH-type forecasts are refitted at the start of each month from 2010 on all past data. Normal multipliers: 2.326 (VaR 99%) and 2.338 (ES 97.5%).
+
 ### `fact_dq`: one row per run, instrument and rule
 
 | Column | Type | Description |
