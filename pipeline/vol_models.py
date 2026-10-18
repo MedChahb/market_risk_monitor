@@ -52,8 +52,9 @@ XGB_SETTINGS = {  # fixed and shallow, never tuned on the test period
     "random_state": 0,
     "n_jobs": 4,
 }
-PERIODS = {"2018-2026": None, "2020": "2020", "2022": "2022"}
+STRESS_YEARS = (2020, 2022)  # evaluated on their own as well as over the whole test period
 FORECAST_FILE = config.FORECAST_DIR / "vol_forecasts.parquet"
+EVALUATION_FILE = config.FORECAST_DIR / "vol_evaluation.parquet"
 FORECAST_COLUMNS = ["date", "series_id", "model_id", "forecast_var", "realised_var", "inputs"]
 PNL_QUERY = text("SELECT date, position_id, return_eur, pnl_eur FROM gold.fact_pnl")
 SILVER_QUERY = text("SELECT date, instrument_id, value FROM silver.market")
@@ -318,8 +319,11 @@ def results_table(forecasts: pd.DataFrame) -> pd.DataFrame:
         wide = group.pivot(index="date", columns="model_id", values="forecast_var").dropna()
         realised = group.drop_duplicates("date").set_index("date")["realised_var"].reindex(wide.index)
         wide, realised = wide[realised > 0], realised[realised > 0]
-        for period, year in PERIODS.items():
-            in_period = wide.index.year == int(year) if year else np.ones(len(wide), dtype=bool)
+        periods = {f"{wide.index[0].year}-{wide.index[-1].year}": None} | {
+            str(year): year for year in STRESS_YEARS
+        }
+        for period, year in periods.items():
+            in_period = wide.index.year == year if year else np.ones(len(wide), dtype=bool)
             if not in_period.any():
                 continue
             truth = realised[in_period]
@@ -386,31 +390,42 @@ def log_runs(table: pd.DataFrame, models: list[str], inputs: pd.DataFrame) -> No
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Walk-forward volatility forecasts for the book.")
     parser.add_argument("--models", nargs="+", choices=MODELS, default=list(MODELS))
+    parser.add_argument(
+        "--evaluate-only",
+        action="store_true",
+        help="recompute the evaluation table from the stored forecasts",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format=config.LOG_FORMAT)
     load_dotenv()
     torch.set_num_threads(4)
 
-    with db.engine().connect() as conn:
-        returns = series_returns(pd.read_sql(PNL_QUERY, conn))
-        exogenous = exogenous_features(pd.read_sql(SILVER_QUERY, conn), returns.index)
-        ranges = position_ranges(pd.read_sql(RANGE_QUERY, conn), returns.index)
-    missing = sorted({"log_vix", "us_slope", "eur_slope"} - set(exogenous.columns))
-    log.info("exogenous inputs: %s; not available: %s", list(exogenous.columns) or "none", missing or "none")
-
-    forecasts = pd.concat(
-        [
-            forecast_series(series_id, returns[series_id], exogenous, ranges.get(series_id), args.models)
-            for series_id in returns.columns
-        ],
-        ignore_index=True,
-    )
-    every_model = store(forecasts, args.models)
+    if args.evaluate_only:
+        every_model = pd.read_parquet(FORECAST_FILE)
+    else:
+        with db.engine().connect() as conn:
+            returns = series_returns(pd.read_sql(PNL_QUERY, conn))
+            exogenous = exogenous_features(pd.read_sql(SILVER_QUERY, conn), returns.index)
+            ranges = position_ranges(pd.read_sql(RANGE_QUERY, conn), returns.index)
+        missing = sorted({"log_vix", "us_slope", "eur_slope"} - set(exogenous.columns))
+        log.info(
+            "exogenous inputs: %s; not available: %s", list(exogenous.columns) or "none", missing or "none"
+        )
+        forecasts = pd.concat(
+            [
+                forecast_series(series_id, returns[series_id], exogenous, ranges.get(series_id), args.models)
+                for series_id in returns.columns
+            ],
+            ignore_index=True,
+        )
+        every_model = store(forecasts, args.models)
     table = results_table(every_model)
-    inputs = forecasts.drop_duplicates(["model_id", "series_id"])[["model_id", "series_id", "inputs"]]
-    log_runs(table, args.models, inputs)
+    files.write_parquet(table, EVALUATION_FILE)
+    if not args.evaluate_only:
+        inputs = forecasts.drop_duplicates(["model_id", "series_id"])[["model_id", "series_id", "inputs"]]
+        log_runs(table, args.models, inputs)
 
-    summary = table[table["period"] == "2018-2026"].pivot(
+    summary = table[table["period"].str.contains("-")].pivot(
         index="series_id", columns="model_id", values="qlike"
     )
     log.info("mean QLIKE 2018-2026 (lower is better):\n%s", summary.round(3).to_string())

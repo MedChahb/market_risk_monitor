@@ -115,6 +115,16 @@ def build_dim_position() -> pd.DataFrame:
     )
 
 
+def build_dim_series() -> pd.DataFrame:
+    """The risk series that are forecast and reported: the book first, then each position."""
+    rows = [{"series_id": "book", "name": "Book", "kind": "book", "sort_order": 0}]
+    rows += [
+        {"series_id": position.position_id, "name": position.name, "kind": "position", "sort_order": order}
+        for order, position in enumerate(BOOK, start=1)
+    ]
+    return pd.DataFrame(rows)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Compute the book's daily P&L from silver and load it into gold."
@@ -133,6 +143,7 @@ def main(argv: list[str] | None = None) -> int:
     with engine.begin() as conn:
         db.run_sql_file(conn, "book.sql")
         db.insert(conn, "gold", "dim_position", build_dim_position())
+        db.insert(conn, "gold", "dim_series", build_dim_series())
         db.insert(conn, "gold", "fact_pnl", pnl)
 
     book = book_pnl(pnl)

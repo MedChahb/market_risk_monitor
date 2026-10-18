@@ -79,3 +79,10 @@ def test_a_carried_forward_day_has_zero_pnl():
     pnl = book.position_pnl(levels(CAC40=[100, 101, 101, 103]))
     assert position(pnl, "CAC40", 2)["pnl_eur"] == 0
     assert position(pnl, "CAC40", 3)["return_eur"] == pytest.approx(103 / 101 - 1)
+
+
+def test_series_dimension_lists_the_book_first_then_every_position():
+    series = book.build_dim_series()
+    assert series["series_id"].tolist() == ["book", *(position.position_id for position in book.BOOK)]
+    assert series["sort_order"].tolist() == list(range(len(book.BOOK) + 1))
+    assert set(series["kind"]) == {"book", "position"}

@@ -1,6 +1,7 @@
 -- The trading book and its daily P&L, rebuilt from silver at every run.
 
 DROP TABLE IF EXISTS gold.fact_pnl;
+DROP TABLE IF EXISTS gold.dim_series CASCADE;  -- the forecast tables reference it; publish recreates them
 DROP TABLE IF EXISTS gold.dim_position;
 
 CREATE TABLE gold.dim_position (
@@ -23,3 +24,11 @@ CREATE TABLE gold.fact_pnl (
     PRIMARY KEY (date, position_id)
 );
 CREATE INDEX ON gold.fact_pnl (position_id);
+
+-- Series whose volatility is forecast: the book and each position.
+CREATE TABLE gold.dim_series (
+    series_id  TEXT    PRIMARY KEY,  -- a position_id, or 'book'
+    name       TEXT    NOT NULL,
+    kind       TEXT    NOT NULL CHECK (kind IN ('book', 'position')),
+    sort_order INTEGER NOT NULL      -- the book first, then the positions in book order
+);
