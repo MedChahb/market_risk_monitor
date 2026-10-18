@@ -171,6 +171,22 @@ Key: (`date`, `series_id`, `model_id`). Models are refitted at the start of each
 
 Key: (`for_date`, `method_id`). GARCH-type forecasts are refitted at the start of each month from 2010 on all past data. Normal multipliers: 2.326 (VaR 99%) and 2.338 (ES 97.5%).
 
+**`fact_backtest`**: one row per VaR method and day with a realised P&L, rebuilt by [`pipeline/backtest.py`](../pipeline/backtest.py) at every run.
+
+| Column | Type | Description |
+|---|---|---|
+| `for_date` | date | Day the VaR covers; to `dim_date` |
+| `method_id` | text | To `dim_method` |
+| `var_99_eur` | double | VaR computed at the previous close |
+| `pnl_eur` | double | Book P&L of the day |
+| `is_exception` | boolean | True when the loss exceeded the VaR (`pnl_eur < -var_99_eur`) |
+| `exceptions_250d` | int | Exceptions over the last 250 days; empty for a method's first 249 days |
+| `zone` | text | Basel traffic light of that count: `green` (0-4), `yellow` (5-9), `red` (10 or more) |
+
+Key: (`for_date`, `method_id`).
+
+**`fact_backtest_summary`**: one row per VaR method and period (the whole period, labelled by its first and last year, and the stress years 2020 and 2022): `n_days`, `n_exceptions`, `expected_exceptions` (1% of the days), `kupiec_p` (proportion of failures, Kupiec 1995), `christoffersen_p` (independence, Christoffersen 1998), `conditional_coverage_p` (both jointly, 2 degrees of freedom), `worst_zone` (worst 250-day zone reached in the period) and `zone_at_end`. Key: (`method_id`, `period`).
+
 ### `fact_dq`: one row per run, instrument and rule
 
 | Column | Type | Description |
