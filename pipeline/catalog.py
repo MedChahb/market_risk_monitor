@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 YAHOO_LICENCE = "Yahoo terms: personal use; raw data not redistributed"
 ECB_LICENCE = "ECB statistics: reuse with source acknowledgement"
+EXECUTION = "execution universe"
 
 
 @dataclass(frozen=True)
@@ -17,7 +18,7 @@ class Series:
     currency: str
     unit: str
     calendar: str | None = None  # exchange_calendars code, "weekdays", or None: no completeness check
-    role: str = "book risk factor"  # book risk factor | model input | cross-check
+    role: str = "book risk factor"  # book risk factor | model input | cross-check | execution universe
     licence: str = YAHOO_LICENCE
     publish_level: bool = False  # True when the licence allows publishing the raw level
 
@@ -144,6 +145,36 @@ CATALOG: tuple[Series, ...] = (
         role="model input",
         licence="US Treasury data via FRED; raw data not redistributed",
     ),
+)
+
+# The ten largest CAC 40 weights on 31 March 2017 (Euronext factsheet, quoted in the French Wikipedia
+# article "CAC 40", revision 143694577), fixed before the 2018 test period to avoid picking today's winners.
+EXECUTION_UNIVERSE = (
+    ("TTE", "TotalEnergies", "TTE.PA"),
+    ("SAN", "Sanofi", "SAN.PA"),
+    ("BNP", "BNP Paribas", "BNP.PA"),
+    ("MC", "LVMH", "MC.PA"),
+    ("CS", "AXA", "CS.PA"),
+    ("OR", "L'Oréal", "OR.PA"),
+    ("AI", "Air Liquide", "AI.PA"),
+    ("AIR", "Airbus", "AIR.PA"),
+    ("DG", "Vinci", "DG.PA"),
+    ("BN", "Danone", "BN.PA"),
+)
+CATALOG += tuple(
+    Series(
+        instrument=instrument,
+        name=name,
+        short_name=name,
+        source="yahoo",
+        key=ticker,
+        asset_class="equity",
+        currency="EUR",
+        unit="EUR per share",
+        calendar="XPAR",
+        role=EXECUTION,
+    )
+    for instrument, name, ticker in EXECUTION_UNIVERSE
 )
 
 SOURCES = ("yahoo", "ecb", "fred")

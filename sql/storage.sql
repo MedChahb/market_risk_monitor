@@ -26,6 +26,19 @@ CREATE TABLE silver.daily_range (
     PRIMARY KEY (date, instrument_id)
 );
 
+-- Daily bars of the execution universe, on the days the stock traded (a day without volume is left out).
+CREATE TABLE silver.daily_bar (
+    date          DATE             NOT NULL,
+    instrument_id TEXT             NOT NULL,
+    open          DOUBLE PRECISION NOT NULL CHECK (open > 0),
+    high          DOUBLE PRECISION NOT NULL CHECK (high > 0),
+    low           DOUBLE PRECISION NOT NULL CHECK (low > 0),
+    close         DOUBLE PRECISION NOT NULL CHECK (close > 0),
+    adj_close     DOUBLE PRECISION NOT NULL CHECK (adj_close > 0),  -- close adjusted for dividends and splits
+    volume        BIGINT           NOT NULL CHECK (volume > 0),     -- shares traded on Euronext Paris
+    PRIMARY KEY (date, instrument_id)
+);
+
 -- Every calendar day of the covered years, so the report can mark it as a date table.
 CREATE TABLE gold.dim_date (
     date              DATE    PRIMARY KEY,

@@ -24,7 +24,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from pipeline import config, raw
-from pipeline.catalog import SOURCES, Series, by_source
+from pipeline.catalog import EXECUTION, SOURCES, Series, by_source
 
 log = logging.getLogger("ingest")
 
@@ -32,13 +32,15 @@ ECB_URL = "https://data-api.ecb.europa.eu/service/data/{key}"
 FRED_URL = "https://api.stlouisfed.org/fred/series/observations"
 TIMEOUT = (10, 60)  # seconds: connect, read
 
+PARIS_CLOSE = ("Europe/Paris", clock(18, 0))  # Euronext's closing auction ends at 17:35
 # Yahoo shows a live bar for today while the market is open; it is final only after the local close.
 YAHOO_FINAL_AFTER = {
-    "^FCHI": ("Europe/Paris", clock(18, 0)),
-    "^STOXX50E": ("Europe/Paris", clock(18, 0)),
+    "^FCHI": PARIS_CLOSE,
+    "^STOXX50E": PARIS_CLOSE,
     "^GSPC": ("America/New_York", clock(16, 30)),
     "GC=F": ("America/New_York", clock(17, 30)),
     "EURUSD=X": ("Europe/London", clock.max),  # trades around the clock: only bars up to yesterday are final
+    **{series.key: PARIS_CLOSE for series in by_source("yahoo") if series.role == EXECUTION},
 }
 
 
