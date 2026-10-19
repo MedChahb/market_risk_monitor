@@ -1,0 +1,84 @@
+table fact_forecast_evaluation
+	lineageTag: b2bd97ba-c147-543a-9919-84918242c80f
+
+	column series_id
+		dataType: string
+		isHidden
+		lineageTag: db288e0e-5e0a-5459-9e53-a86285537c28
+		summarizeBy: none
+		sourceColumn: series_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Evaluation Period'
+		dataType: string
+		lineageTag: d3cc8a6a-0669-51ac-85d2-5c29e7cdafc4
+		summarizeBy: none
+		sourceColumn: period
+
+		annotation SummarizationSetBy = Automatic
+
+	column model_id
+		dataType: string
+		isHidden
+		lineageTag: 692f2eca-95a0-53cf-9abf-d53654f19e9b
+		summarizeBy: none
+		sourceColumn: model_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Evaluation Days'
+		dataType: int64
+		formatString: #,##0
+		lineageTag: ab6aa14a-18ed-5714-9746-838de65c01dd
+		summarizeBy: none
+		sourceColumn: n_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column QLIKE
+		dataType: double
+		formatString: 0.000
+		lineageTag: 35012899-a983-5078-88cd-83550c6847e7
+		summarizeBy: none
+		sourceColumn: qlike
+
+		annotation SummarizationSetBy = Automatic
+
+	column MSE
+		dataType: double
+		formatString: 0.000
+		lineageTag: 8521bf17-9f39-5e04-8190-591e1d805a06
+		summarizeBy: none
+		sourceColumn: mse
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'DM Statistic vs HAR'
+		dataType: double
+		formatString: 0.00
+		lineageTag: d3848fb7-639e-56e7-ba1d-0279c4649b0c
+		summarizeBy: none
+		sourceColumn: dm_stat_vs_har
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'DM p vs HAR'
+		dataType: double
+		formatString: 0.000
+		lineageTag: c6251930-8ab2-5ff4-8a63-c034095cdc2e
+		summarizeBy: none
+		sourceColumn: dm_p_vs_har
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_forecast_evaluation = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_forecast_evaluation.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"series_id", type text}, {"period", type text}, {"model_id", type text}, {"n_days", Int64.Type}, {"qlike", type number}, {"mse", type number}, {"dm_stat_vs_har", type number}, {"dm_p_vs_har", type number}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

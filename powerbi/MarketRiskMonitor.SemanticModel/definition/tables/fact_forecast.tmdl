@@ -1,0 +1,70 @@
+table fact_forecast
+	lineageTag: 6094a9a2-58c9-513d-af91-49471c61e145
+
+	column date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: bd8a7b16-66f7-594f-ae0c-fc60e483126b
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column series_id
+		dataType: string
+		isHidden
+		lineageTag: c52530ba-7aae-59c0-9c0e-be9bc06e65dc
+		summarizeBy: none
+		sourceColumn: series_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column model_id
+		dataType: string
+		isHidden
+		lineageTag: 24233479-5aa1-5aa7-9e6c-bf50203c36c0
+		summarizeBy: none
+		sourceColumn: model_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column forecast_var
+		dataType: double
+		isHidden
+		lineageTag: 9c520b9b-d2d1-5c02-bd55-c97dfd9d69d4
+		summarizeBy: none
+		sourceColumn: forecast_var
+
+		annotation SummarizationSetBy = Automatic
+
+	column realised_var
+		dataType: double
+		isHidden
+		lineageTag: e77cbecf-bfb8-5434-9d71-8f65914b42f0
+		summarizeBy: none
+		sourceColumn: realised_var
+
+		annotation SummarizationSetBy = Automatic
+
+	column inputs
+		dataType: string
+		isHidden
+		lineageTag: 1438d1c6-6959-565b-8a22-95a93b5c12b5
+		summarizeBy: none
+		sourceColumn: inputs
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_forecast = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_forecast.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"date", type date}, {"series_id", type text}, {"model_id", type text}, {"forecast_var", type number}, {"realised_var", type number}, {"inputs", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

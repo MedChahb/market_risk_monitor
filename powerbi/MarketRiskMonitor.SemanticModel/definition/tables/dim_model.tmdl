@@ -1,0 +1,39 @@
+table dim_model
+	lineageTag: 964533c3-3901-5232-b281-99721513d948
+
+	column model_id
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: cc821947-d99e-509d-8590-bf78fd19d9f3
+		summarizeBy: none
+		sourceColumn: model_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Model
+		dataType: string
+		lineageTag: ac0177a5-c2fc-5185-b1b8-4bdee0bc3e19
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Model Description'
+		dataType: string
+		lineageTag: 582fabee-7bdf-59ae-abc3-0c6f6367e7ba
+		summarizeBy: none
+		sourceColumn: description
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_model = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\dim_model.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"model_id", type text}, {"name", type text}, {"description", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,136 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "key_figures",
+  "position": {
+    "x": 32,
+    "y": 136,
+    "z": 3000,
+    "width": 1856,
+    "height": 120,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "VaR 99% (latest)"
+                }
+              },
+              "queryRef": "_Measures.VaR 99% (latest)",
+              "nativeQueryRef": "VaR 99% (latest)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "ES 97.5% (latest)"
+                }
+              },
+              "queryRef": "_Measures.ES 97.5% (latest)",
+              "nativeQueryRef": "ES 97.5% (latest)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "VaR 99% (latest), % of Book"
+                }
+              },
+              "queryRef": "_Measures.VaR 99% (latest), % of Book",
+              "nativeQueryRef": "VaR 99% (latest), % of Book"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Exceptions 250d"
+                }
+              },
+              "queryRef": "_Measures.Exceptions 250d",
+              "nativeQueryRef": "Exceptions 250d"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Traffic Light"
+                }
+              },
+              "queryRef": "_Measures.Traffic Light",
+              "nativeQueryRef": "Traffic Light"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Latest VaR Date"
+                }
+              },
+              "queryRef": "_Measures.Latest VaR Date",
+              "nativeQueryRef": "Latest VaR Date"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Latest VaR, ES, 250-day exception count and traffic light of the selected method'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

@@ -238,6 +238,171 @@ table _Measures
 		displayFolder: Data quality
 		lineageTag: 4cd0fbc8-e90a-5d9e-85fa-514ff978e8f1
 
+	/// 1-day VaR 99% of the book in euros, as a positive loss, for the day it covers. One method at a time.
+	measure 'VaR 99%' =
+			IF ( HASONEVALUE ( dim_method[method_id] ), SUM ( fact_var[var_99_eur] ) )
+		formatString: #,##0
+		displayFolder: Risk
+		lineageTag: 29c30f69-11f9-56b4-b5d2-7d23e7155056
+
+	/// The VaR as a negative P&L, to draw it against the daily P&L.
+	measure 'Minus VaR 99%' =
+			-[VaR 99%]
+		formatString: #,##0
+		displayFolder: Risk
+		lineageTag: 30261675-713f-57ab-958d-3d83b1a8b18d
+
+	/// 1-day Expected Shortfall 97.5% in euros: the average loss on the worst 2.5% of days. One method at a time.
+	measure 'ES 97.5%' =
+			IF ( HASONEVALUE ( dim_method[method_id] ), SUM ( fact_var[es_975_eur] ) )
+		formatString: #,##0
+		displayFolder: Risk
+		lineageTag: 93a032c2-1fdf-5466-a838-a6dac148602b
+
+	/// VaR on the last day of the selection that has one. LASTNONBLANK, because dim_date runs to 31 December and its last day has no VaR.
+	measure 'VaR 99% (latest)' =
+			IF (
+			    HASONEVALUE ( dim_method[method_id] ),
+			    CALCULATE (
+			        SUM ( fact_var[var_99_eur] ),
+			        LASTNONBLANK ( dim_date[Date], CALCULATE ( SUM ( fact_var[var_99_eur] ) ) )
+			    )
+			)
+		formatString: #,##0
+		displayFolder: Risk
+		lineageTag: b81d2d23-6256-5c8d-9543-696fb6167268
+
+	/// Expected Shortfall on the last day of the selection that has one.
+	measure 'ES 97.5% (latest)' =
+			IF (
+			    HASONEVALUE ( dim_method[method_id] ),
+			    CALCULATE (
+			        SUM ( fact_var[es_975_eur] ),
+			        LASTNONBLANK ( dim_date[Date], CALCULATE ( SUM ( fact_var[es_975_eur] ) ) )
+			    )
+			)
+		formatString: #,##0
+		displayFolder: Risk
+		lineageTag: 6295f680-89f1-5d8d-bbd9-1ca0d04edc46
+
+	/// Latest VaR as a share of the 10 M EUR book.
+	measure 'VaR 99% (latest), % of Book' =
+			DIVIDE ( [VaR 99% (latest)], CALCULATE ( SUM ( dim_position[Notional EUR] ), REMOVEFILTERS () ) )
+		formatString: 0.00%
+		displayFolder: Risk
+		lineageTag: fbaceaf2-8824-513f-b665-3dddf7366893
+
+	/// Day covered by the latest VaR in the selection: the next trading day after the last P&L.
+	measure 'Latest VaR Date' =
+			MAX ( fact_var[for_date] )
+		formatString: dd mmm yyyy
+		displayFolder: Risk
+		lineageTag: 7dbf2f3c-4b00-5f68-895d-60c2c8dafa32
+
+	/// Book P&L on days the loss stayed within the selected method's VaR.
+	measure 'Book P&L (normal days)' =
+			IF ( HASONEVALUE ( dim_method[method_id] ), CALCULATE ( SUM ( fact_backtest[pnl_eur] ), fact_backtest[is_exception] = FALSE () ) )
+		formatString: #,##0
+		displayFolder: Risk
+		lineageTag: eb7d4365-fcb8-598d-ab6c-0c67829567a4
+
+	/// Book P&L on days the loss exceeded the selected method's VaR.
+	measure 'Book P&L (exception days)' =
+			IF ( HASONEVALUE ( dim_method[method_id] ), CALCULATE ( SUM ( fact_backtest[pnl_eur] ), fact_backtest[is_exception] = TRUE () ) )
+		formatString: #,##0
+		displayFolder: Risk
+		lineageTag: 5cd6be3c-fbd2-5b6e-b057-d50f064f6954
+
+	/// Days in the selection when the loss exceeded the VaR of the previous close. One method at a time.
+	measure Exceptions =
+			IF ( HASONEVALUE ( dim_method[method_id] ), CALCULATE ( COUNTROWS ( fact_backtest ), fact_backtest[is_exception] = TRUE () ) + 0 )
+		formatString: #,##0
+		displayFolder: Risk
+		lineageTag: 6b18cc33-4112-5440-bd33-d2590b55c6f3
+
+	/// 1% of the backtested days in the selection: what a correct 99% VaR would give.
+	measure 'Expected Exceptions' =
+			IF ( HASONEVALUE ( dim_method[method_id] ), COUNTROWS ( fact_backtest ) * 0.01 )
+		formatString: #,##0.0
+		displayFolder: Risk
+		lineageTag: d4ebee71-9dcb-52fc-b542-1a3cb750a34a
+
+	/// Exceptions over the 250 trading days up to the last backtested day of the selection, whatever the date filter: the Basel traffic-light count.
+	measure 'Exceptions 250d' =
+			VAR LastIdx =
+			    CALCULATE ( MAX ( dim_date[trading_day_index] ), fact_backtest )
+			RETURN
+			    IF (
+			        HASONEVALUE ( dim_method[method_id] ),
+			        CALCULATE (
+			            COUNTROWS ( fact_backtest ),
+			            fact_backtest[is_exception] = TRUE (),
+			            FILTER (
+			                ALL ( dim_date ),
+			                dim_date[trading_day_index] > LastIdx - 250
+			                    && dim_date[trading_day_index] <= LastIdx
+			            )
+			        ) + 0
+			    )
+		formatString: #,##0
+		displayFolder: Risk
+		lineageTag: c2753df4-9a5b-5caa-b5cf-2944b9f84010
+
+	/// Basel zone of the 250-day exception count: green 0 to 4, yellow 5 to 9, red 10 or more.
+	measure 'Traffic Light' =
+			VAR ExceptionCount = [Exceptions 250d]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( ExceptionCount ),
+			        SWITCH ( TRUE (), ExceptionCount <= 4, "Green", ExceptionCount <= 9, "Yellow", "Red" )
+			    )
+		displayFolder: Risk
+		lineageTag: a68b2958-6517-5114-a887-e8f3d5008484
+
+	/// Annualised volatility forecast for the next 5 days (square root of 252 times the daily variance). One model and one series at a time.
+	measure 'Forecast Volatility' =
+			IF (
+			    HASONEVALUE ( dim_model[model_id] ) && HASONEVALUE ( dim_series[series_id] ),
+			    SQRT ( 252 * AVERAGE ( fact_forecast[forecast_var] ) ) / 100
+			)
+		formatString: 0.0%
+		displayFolder: Models
+		lineageTag: be8ef8d9-cbea-5c30-9c4b-00ef51ed5349
+
+	/// Annualised volatility measured over the next 5 days, the quantity the models forecast. One series at a time.
+	measure 'Realised Volatility' =
+			IF (
+			    HASONEVALUE ( dim_series[series_id] ),
+			    CALCULATE (
+			        SQRT ( 252 * AVERAGE ( fact_forecast[realised_var] ) ) / 100,
+			        REMOVEFILTERS ( dim_model ),
+			        fact_forecast[model_id] = "har"
+			    )
+			)
+		formatString: 0.0%
+		displayFolder: Models
+		lineageTag: 23421a34-75ac-562b-8232-297f087caa78
+
+	/// Mean QLIKE loss computed in Python (lower is better). One series and one evaluation period at a time.
+	measure QLIKE =
+			IF (
+			    HASONEVALUE ( fact_forecast_evaluation[Evaluation Period] ) && HASONEVALUE ( dim_series[series_id] ),
+			    AVERAGE ( fact_forecast_evaluation[QLIKE] )
+			)
+		formatString: 0.000
+		displayFolder: Models
+		lineageTag: c5bd1c7c-7668-5068-bab4-95c8227fc348
+
+	/// Diebold-Mariano p-value of the model against HAR, computed in Python with a Newey-West variance.
+	measure 'DM p vs HAR' =
+			IF (
+			    HASONEVALUE ( fact_forecast_evaluation[Evaluation Period] ) && HASONEVALUE ( dim_series[series_id] ),
+			    AVERAGE ( fact_forecast_evaluation[DM p vs HAR] )
+			)
+		formatString: 0.000
+		displayFolder: Models
+		lineageTag: 6ea926f0-a7b6-5117-8eac-7e6726244219
+
 	column Value
 		isHidden
 		lineageTag: 0db324dc-f805-5ee1-b468-98e61f561b4d

@@ -31,3 +31,12 @@ ref table fact_freshness
 ref table _Measures
 
 ref cultureInfo en-GB
+
+ref table dim_method
+ref table dim_model
+ref table dim_series
+ref table fact_var
+ref table fact_backtest
+ref table fact_backtest_summary
+ref table fact_forecast
+ref table fact_forecast_evaluation

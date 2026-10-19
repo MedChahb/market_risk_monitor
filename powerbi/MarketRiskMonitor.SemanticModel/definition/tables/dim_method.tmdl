@@ -1,0 +1,39 @@
+table dim_method
+	lineageTag: 47c3810b-8422-5c5b-8374-c28074685e42
+
+	column method_id
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: fc39f594-08e7-5c4c-8cb8-6ef4e5034c0b
+		summarizeBy: none
+		sourceColumn: method_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Method
+		dataType: string
+		lineageTag: e772f68a-c3c1-50ad-8db0-1cc221264a44
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Method Description'
+		dataType: string
+		lineageTag: c423b6ab-92a5-57b4-ac00-7a13c2aaf70e
+		summarizeBy: none
+		sourceColumn: description
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_method = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\dim_method.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"method_id", type text}, {"name", type text}, {"description", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,100 @@
+table fact_backtest_summary
+	lineageTag: 9621ff1d-1066-5ebf-a9d0-10dc676d3a15
+
+	column method_id
+		dataType: string
+		isHidden
+		lineageTag: 2d40a5f8-bf14-5cab-a8e1-e42db3b5b4e5
+		summarizeBy: none
+		sourceColumn: method_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Backtest Period'
+		dataType: string
+		lineageTag: 3a61ee00-171b-58a7-b6e1-d144f2fe468b
+		summarizeBy: none
+		sourceColumn: period
+
+		annotation SummarizationSetBy = Automatic
+
+	column Days
+		dataType: int64
+		formatString: #,##0
+		lineageTag: f6ab4fc7-dc0d-5440-a471-4b5fd201f037
+		summarizeBy: none
+		sourceColumn: n_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column Exceptions
+		dataType: int64
+		formatString: #,##0
+		lineageTag: ec660cbf-a58a-5ece-98b4-8bdd37c336dc
+		summarizeBy: none
+		sourceColumn: n_exceptions
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Expected Exceptions'
+		dataType: double
+		formatString: #,##0.0
+		lineageTag: d14f0348-e3bf-5fe9-b1d4-e7fe69b6a4e9
+		summarizeBy: none
+		sourceColumn: expected_exceptions
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Kupiec p'
+		dataType: double
+		formatString: 0.000
+		lineageTag: 525ba76e-ab60-51dd-8410-e8e5535d0c6c
+		summarizeBy: none
+		sourceColumn: kupiec_p
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Christoffersen p'
+		dataType: double
+		formatString: 0.000
+		lineageTag: 91c1b870-f28e-5eb4-b5da-2d52f58d2100
+		summarizeBy: none
+		sourceColumn: christoffersen_p
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Conditional Coverage p'
+		dataType: double
+		formatString: 0.000
+		lineageTag: 65300859-28ee-528f-b2f8-2b6b8f695582
+		summarizeBy: none
+		sourceColumn: conditional_coverage_p
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Worst Zone'
+		dataType: string
+		lineageTag: f1aa42d7-c14e-5fd6-be13-3ebc651ab4e2
+		summarizeBy: none
+		sourceColumn: worst_zone
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Zone at End'
+		dataType: string
+		lineageTag: 269fb8ac-bcab-5daf-8cc3-6674cf4af2c2
+		summarizeBy: none
+		sourceColumn: zone_at_end
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_backtest_summary = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_backtest_summary.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"method_id", type text}, {"period", type text}, {"n_days", Int64.Type}, {"n_exceptions", Int64.Type}, {"expected_exceptions", type number}, {"kupiec_p", type number}, {"christoffersen_p", type number}, {"conditional_coverage_p", type number}, {"worst_zone", type text}, {"zone_at_end", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

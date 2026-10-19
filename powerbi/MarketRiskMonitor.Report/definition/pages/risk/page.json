@@ -1,0 +1,50 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "name": "risk",
+  "displayName": "Risk",
+  "displayOption": "FitToPage",
+  "height": 1080,
+  "width": 1920,
+  "visualInteractions": [
+    {
+      "source": "method",
+      "target": "backtest_table",
+      "type": "NoFilter"
+    },
+    {
+      "source": "date_range",
+      "target": "backtest_table",
+      "type": "NoFilter"
+    },
+    {
+      "source": "pnl_against_var",
+      "target": "backtest_table",
+      "type": "NoFilter"
+    },
+    {
+      "source": "pnl_against_var",
+      "target": "exceptions_by_year",
+      "type": "NoFilter"
+    },
+    {
+      "source": "backtest_table",
+      "target": "pnl_against_var",
+      "type": "NoFilter"
+    },
+    {
+      "source": "backtest_table",
+      "target": "exceptions_by_year",
+      "type": "NoFilter"
+    },
+    {
+      "source": "exceptions_by_year",
+      "target": "pnl_against_var",
+      "type": "NoFilter"
+    },
+    {
+      "source": "exceptions_by_year",
+      "target": "backtest_table",
+      "type": "NoFilter"
+    }
+  ]
+}

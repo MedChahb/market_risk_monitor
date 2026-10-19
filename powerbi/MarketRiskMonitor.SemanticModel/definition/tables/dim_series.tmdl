@@ -1,0 +1,49 @@
+table dim_series
+	lineageTag: 8ad38de1-7c1a-5040-98e7-08d83468b535
+
+	column series_id
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: 4718062d-6bf7-5928-b1a7-c031bdf9f373
+		summarizeBy: none
+		sourceColumn: series_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Series
+		dataType: string
+		lineageTag: 03006ff9-4b24-5db4-99dd-6061211aa47b
+		summarizeBy: none
+		sourceColumn: name
+		sortByColumn: sort_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Series Kind'
+		dataType: string
+		lineageTag: 48979371-8120-5f34-9c45-f580cf6841eb
+		summarizeBy: none
+		sourceColumn: kind
+
+		annotation SummarizationSetBy = Automatic
+
+	column sort_order
+		dataType: int64
+		isHidden
+		lineageTag: 21452c8f-8a79-5420-b815-6dec8935017c
+		summarizeBy: none
+		sourceColumn: sort_order
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_series = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\dim_series.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"series_id", type text}, {"name", type text}, {"kind", type text}, {"sort_order", Int64.Type}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
