@@ -80,6 +80,7 @@ CREATE INDEX ON gold.dim_instrument (source_id);
 CREATE TABLE gold.dim_model (
     model_id    TEXT PRIMARY KEY,
     name        TEXT NOT NULL,
+    target      TEXT NOT NULL CHECK (target IN ('volatility', 'volume')),  -- what the model forecasts
     description TEXT NOT NULL
 );
 
