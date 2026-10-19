@@ -113,7 +113,8 @@ def build_daily_range(yahoo: pd.DataFrame | None) -> pd.DataFrame:
 def build_dim_date(trading_days: pd.DatetimeIndex, as_of: date) -> pd.DataFrame:
     """Every calendar day of the covered years, with a trading-day index for rolling windows."""
     start = pd.Timestamp(trading_days[0].year, 1, 1)
-    end = pd.Timestamp(max(trading_days[-1].year, as_of.year), 12, 31)
+    horizon = trading_days[-1] + pd.Timedelta(days=14)  # figures for the next session may fall in January
+    end = pd.Timestamp(max(horizon.year, as_of.year), 12, 31)
     days = pd.date_range(start, end, freq="D")
     is_trading = days.isin(trading_days)
     index = pd.Series(np.cumsum(is_trading), index=days, dtype="Int64")
