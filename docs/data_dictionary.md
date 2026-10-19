@@ -160,6 +160,10 @@ Key: (`date`, `position_id`). Notionals are constant (daily rebalancing). Book P
 
 Key: (`date`, `series_id`, `model_id`). Models are refitted at the start of each month on all past data; supervised models leave out the last 5 training rows, whose targets overlap the forecast month.
 
+**`dim_series`**: the series whose volatility is forecast, written by [`pipeline/book.py`](../pipeline/book.py): `series_id` (key: a `position_id` or `book`), `name`, `kind` (`book` or `position`), `sort_order` (the book first).
+
+**`fact_forecast_evaluation`**: accuracy of each volatility model, computed by [`pipeline/vol_models.py`](../pipeline/vol_models.py) from `fact_forecast` and loaded at every publish. One row per series, period (the whole test period, labelled by its first and last year, and the stress years 2020 and 2022) and model: `n_days` (days where every model of the series has a forecast and the realised variance is known), `qlike` (mean QLIKE loss, lower is better), `mse` (mean squared error on the variance), `dm_stat_vs_har` and `dm_p_vs_har` (Diebold-Mariano statistic and two-sided p-value against HAR, Newey-West variance; a negative statistic favours the model; empty for HAR). Key: (`series_id`, `period`, `model_id`).
+
 **`fact_var`**: daily 1-day VaR 99% and ES 97.5% of the book from 2012, rebuilt by [`pipeline/var.py`](../pipeline/var.py) at every run.
 
 | Column | Type | Description |
