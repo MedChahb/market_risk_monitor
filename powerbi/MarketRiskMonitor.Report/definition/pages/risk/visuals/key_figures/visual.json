@@ -3,10 +3,10 @@
   "name": "key_figures",
   "position": {
     "x": 32,
-    "y": 136,
+    "y": 224,
     "z": 3000,
     "width": 1856,
-    "height": 120,
+    "height": 112,
     "tabOrder": 3000
   },
   "visual": {
@@ -102,6 +102,21 @@
           ]
         }
       }
+    },
+    "objects": {
+      "value": [
+        {
+          "properties": {
+            "labelDisplayUnits": {
+              "expr": {
+                "Literal": {
+                  "Value": "1.0D"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "visualContainerObjects": {
       "general": [

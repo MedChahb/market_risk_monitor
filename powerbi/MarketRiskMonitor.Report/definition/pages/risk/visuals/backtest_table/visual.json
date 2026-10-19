@@ -3,10 +3,10 @@
   "name": "backtest_table",
   "position": {
     "x": 32,
-    "y": 704,
+    "y": 736,
     "z": 5000,
     "width": 1180,
-    "height": 344,
+    "height": 312,
     "tabOrder": 5000
   },
   "visual": {
@@ -202,13 +202,40 @@
                               "Value": "'#ffffff'"
                             }
                           }
+                        },
+                        {
+                          "Condition": {
+                            "Comparison": {
+                              "ComparisonKind": 2,
+                              "Left": {
+                                "Aggregation": {
+                                  "Expression": {
+                                    "Column": {
+                                      "Expression": {
+                                        "SourceRef": {
+                                          "Entity": "fact_backtest_summary"
+                                        }
+                                      },
+                                      "Property": "Kupiec p"
+                                    }
+                                  },
+                                  "Function": 4
+                                }
+                              },
+                              "Right": {
+                                "Literal": {
+                                  "Value": "0.0D"
+                                }
+                              }
+                            }
+                          },
+                          "Value": {
+                            "Literal": {
+                              "Value": "'#f6cfcb'"
+                            }
+                          }
                         }
-                      ],
-                      "DefaultValue": {
-                        "Literal": {
-                          "Value": "'#f6cfcb'"
-                        }
-                      }
+                      ]
                     }
                   }
                 }
@@ -265,13 +292,40 @@
                               "Value": "'#ffffff'"
                             }
                           }
+                        },
+                        {
+                          "Condition": {
+                            "Comparison": {
+                              "ComparisonKind": 2,
+                              "Left": {
+                                "Aggregation": {
+                                  "Expression": {
+                                    "Column": {
+                                      "Expression": {
+                                        "SourceRef": {
+                                          "Entity": "fact_backtest_summary"
+                                        }
+                                      },
+                                      "Property": "Christoffersen p"
+                                    }
+                                  },
+                                  "Function": 4
+                                }
+                              },
+                              "Right": {
+                                "Literal": {
+                                  "Value": "0.0D"
+                                }
+                              }
+                            }
+                          },
+                          "Value": {
+                            "Literal": {
+                              "Value": "'#f6cfcb'"
+                            }
+                          }
                         }
-                      ],
-                      "DefaultValue": {
-                        "Literal": {
-                          "Value": "'#f6cfcb'"
-                        }
-                      }
+                      ]
                     }
                   }
                 }
@@ -328,13 +382,40 @@
                               "Value": "'#ffffff'"
                             }
                           }
+                        },
+                        {
+                          "Condition": {
+                            "Comparison": {
+                              "ComparisonKind": 2,
+                              "Left": {
+                                "Aggregation": {
+                                  "Expression": {
+                                    "Column": {
+                                      "Expression": {
+                                        "SourceRef": {
+                                          "Entity": "fact_backtest_summary"
+                                        }
+                                      },
+                                      "Property": "Conditional Coverage p"
+                                    }
+                                  },
+                                  "Function": 4
+                                }
+                              },
+                              "Right": {
+                                "Literal": {
+                                  "Value": "0.0D"
+                                }
+                              }
+                            }
+                          },
+                          "Value": {
+                            "Literal": {
+                              "Value": "'#f6cfcb'"
+                            }
+                          }
                         }
-                      ],
-                      "DefaultValue": {
-                        "Literal": {
-                          "Value": "'#f6cfcb'"
-                        }
-                      }
+                      ]
                     }
                   }
                 }
