@@ -4,7 +4,7 @@ Market risk monitoring of a fictional multi-asset trading book in euros (equitie
 
 The goal: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall, and backtests them, with the results reported in Power BI.
 
-**Status:** work in progress. Ingestion, the data quality gate, the silver/gold storage, the book P&L, volatility forecasts, VaR and ES with their backtest, and a first Power BI report are in place; this README grows as each part is built.
+**Status:** v1.0 (19 October 2026): data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest, and a six-page Power BI report. Scheduling and monitoring, trading costs, market regimes, anomaly detection and a public web app come next.
 
 ## Data lineage
 
@@ -85,9 +85,17 @@ Filtered historical simulation is the recommended risk figure: the only method t
 
 ## Power BI report
 
-Three pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`](powerbi/): the semantic model in TMDL and the pages in PBIR, so every change to a measure or a visual is a reviewable diff. Report changes are listed in [CHANGELOG.md](CHANGELOG.md).
+Six pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`](powerbi/): the semantic model in TMDL (43 measures) and the pages in PBIR, so every change to a measure or a visual is a reviewable diff. Report changes are listed in [CHANGELOG.md](CHANGELOG.md); the full report is also in [`docs/report.pdf`](docs/report.pdf).
 
-**Market.** Return, volatility, worst day and drawdown over the selected dates; indices rebased to 100 on a log scale, 22-day volatility and the euro AAA 10-year yield.
+**Risk.** The latest VaR and ES of the book for the selected method (filtered historical simulation by default), the 250-day exception count and Basel traffic light, the daily P&L against the VaR with exception days in red, and the backtest of the five methods.
+
+![Risk page](docs/images/report_risk.png)
+
+**Models.** Volatility forecasts against realised volatility for any series and model, the QLIKE of every model on every series, and Diebold-Mariano tests against HAR.
+
+![Models page](docs/images/report_models.png)
+
+**Market.** Return, volatility, worst day and drawdown over the selected dates; indices rebased to 100 on a log scale, 22-day volatility and the euro AAA 2-year and 10-year yields.
 
 ![Market page](docs/images/report_market.png)
 
@@ -95,11 +103,11 @@ Three pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi
 
 ![Correlation page](docs/images/report_correlation.png)
 
-**Data quality.** Results of the latest quality run, flagged observations by rule and series, and how late each series is.
+**Data quality.** Results of the latest quality run, flagged observations by rule and series, and how late each series is. A **Read me** page gives the definitions, sources and refresh procedure.
 
 ![Data quality page](docs/images/report_data_quality.png)
 
-To open it, run the pipeline below, open `powerbi/MarketRiskMonitor.pbip` in Power BI Desktop, point the `DataFolder` parameter (Transform data > Edit parameters) to your `data/gold` folder and refresh.
+To open it, download `MarketRiskMonitor.pbix` from the [v1.0 release](https://github.com/MedChahb/market_risk_monitor/releases/tag/v1.0) (data included), or open `powerbi/MarketRiskMonitor.pbip`. To refresh either, point the `DataFolder` parameter (Transform data > Edit parameters) to the repository's `data/gold` folder, which holds the published tables, and click Refresh.
 
 ## Quick start
 
