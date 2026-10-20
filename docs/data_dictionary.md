@@ -16,17 +16,28 @@ Owner of every dataset: the project maintainer. Series metadata is defined once 
 | `EUR2Y_AAA` | Euro area AAA 2-year spot yield (model input: euro curve slope) | ECB Data Portal | `YC` / `B.U2.EUR.4F.G_N_A.SV_C_YM.SR_2Y` | Rates | Percent per annum | XPAR | ECB statistics: reuse with source acknowledgement |
 | `VIX` | Cboe Volatility Index | FRED | `VIXCLS` | Volatility index | Index points | XNYS | Cboe data via FRED; raw data not redistributed |
 | `US10Y2Y` | US 10-year minus 2-year Treasury yield | FRED | `T10Y2Y` | Rates | Percentage points | None (US bond market) | US Treasury data via FRED; raw data not redistributed |
+| `TTE` | TotalEnergies (execution universe) | Yahoo Finance | `TTE.PA` | Equity (EUR) | EUR per share; volume in shares | XPAR | Yahoo terms: personal use; raw data not redistributed |
+| `SAN` | Sanofi (execution universe) | Yahoo Finance | `SAN.PA` | Equity (EUR) | EUR per share; volume in shares | XPAR | Yahoo terms: personal use; raw data not redistributed |
+| `BNP` | BNP Paribas (execution universe) | Yahoo Finance | `BNP.PA` | Equity (EUR) | EUR per share; volume in shares | XPAR | Yahoo terms: personal use; raw data not redistributed |
+| `MC` | LVMH (execution universe) | Yahoo Finance | `MC.PA` | Equity (EUR) | EUR per share; volume in shares | XPAR | Yahoo terms: personal use; raw data not redistributed |
+| `CS` | AXA (execution universe) | Yahoo Finance | `CS.PA` | Equity (EUR) | EUR per share; volume in shares | XPAR | Yahoo terms: personal use; raw data not redistributed |
+| `OR` | L'Oréal (execution universe) | Yahoo Finance | `OR.PA` | Equity (EUR) | EUR per share; volume in shares | XPAR | Yahoo terms: personal use; raw data not redistributed |
+| `AI` | Air Liquide (execution universe) | Yahoo Finance | `AI.PA` | Equity (EUR) | EUR per share; volume in shares | XPAR | Yahoo terms: personal use; raw data not redistributed |
+| `AIR` | Airbus (execution universe) | Yahoo Finance | `AIR.PA` | Equity (EUR) | EUR per share; volume in shares | XPAR | Yahoo terms: personal use; raw data not redistributed |
+| `DG` | Vinci (execution universe) | Yahoo Finance | `DG.PA` | Equity (EUR) | EUR per share; volume in shares | XPAR | Yahoo terms: personal use; raw data not redistributed |
+| `BN` | Danone (execution universe) | Yahoo Finance | `BN.PA` | Equity (EUR) | EUR per share; volume in shares | XPAR | Yahoo terms: personal use; raw data not redistributed |
 
 Conventions:
 
 - **Dates** are trading dates in the market's local time zone, stored without a time zone. `downloaded_at` is in UTC.
 - **Yahoo prices** are requested with `auto_adjust=False`. For price indices `close` equals `adj_close` on every row. `GC=F` is the front-month future: its series jumps when the contract rolls.
-- **Live bars:** a Yahoo bar dated today is kept only after the local close plus a buffer (Paris 18:00, New York 16:30 for the S&P 500 and 17:30 for gold). Yahoo EUR/USD trades around the clock, so only bars up to the previous day are kept.
+- **Live bars:** a Yahoo bar dated today is kept only after the local close plus a buffer (Paris 18:00 for the CAC 40, the Euro Stoxx 50 and the ten stocks, New York 16:30 for the S&P 500 and 17:30 for gold). Yahoo EUR/USD trades around the clock, so only bars up to the previous day are kept.
 - **ECB EUR/USD** is the reference rate set around 14:15 CET on TARGET business days, which match the XPAR calendar exactly since 2008. It is the rate used to convert USD positions.
 - **FRED** marks a day without a value with `"."`; such days are dropped at ingestion.
 - **Calendars** come from `exchange_calendars`. `US10Y2Y` follows the US bond market calendar, which that library does not provide, so it has no completeness check.
-- **Roles:** book risk factors (`CAC40`, `SX5E`, `SPX`, `GOLD`, `EURUSD`, `EUR10Y_AAA`), model inputs (`VIX`, `US10Y2Y`) and the cross-check `EURUSD_YAHOO`, used by the quality gate only.
-- **Publication:** gold tables carry raw levels only where the licence allows redistribution (the two ECB series). Other price series are published as an index rebased to 100 and daily returns.
+- **Roles:** book risk factors (`CAC40`, `SX5E`, `SPX`, `GOLD`, `EURUSD`, `EUR10Y_AAA`), model inputs (`VIX`, `US10Y2Y`, `EUR2Y_AAA`), the cross-check `EURUSD_YAHOO`, used by the quality gate only, and the execution universe: the ten largest CAC 40 weights on 31 March 2017 (Euronext factsheet, as quoted in the French Wikipedia article "CAC 40", revision 143694577), fixed before the 2018 test period of the volume models.
+- **Stock volume** is the number of shares traded on Euronext Paris. It equals the volume Euronext publishes for these stocks (checked for the ten stocks on 37 sessions, September to October 2026) and leaves out the other venues where the same shares trade. Yahoo's `open`, `high`, `low`, `close` and `volume` are adjusted for splits (Air Liquide's bonus share issues appear as splits); `adj_close` also for dividends.
+- **Publication:** gold tables carry raw levels only where the licence allows redistribution (the ECB series). Other price series are published as an index rebased to 100 and daily returns; stock volumes only as multiples of their 20-day average daily volume.
 
 ## Tables
 
@@ -72,6 +83,20 @@ Range-based daily variance of the Yahoo series of silver (CAC 40, Euro Stoxx 50,
 
 Key: (`date`, `instrument_id`). Fallback days on 2026-10-22: gold 233 (front-month future), Euro Stoxx 50 7, CAC 40 and S&P 500 none.
 
+### Silver: `silver.daily_bar` (PostgreSQL)
+
+Daily bars of the ten stocks of the execution universe, on the days they traded. Not exported. A bar with zero volume is left out: Yahoo shows such bars on exchange holidays and on feed gaps (see the known issues).
+
+| Column | Type | Description |
+|---|---|---|
+| `date` | date | Session |
+| `instrument_id` | text | Instrument id |
+| `open`, `high`, `low`, `close` | double | Prices in EUR, adjusted for splits |
+| `adj_close` | double | Close adjusted for dividends and splits, used for returns |
+| `volume` | bigint | Shares traded on Euronext Paris |
+
+Key: (`date`, `instrument_id`).
+
 ### Gold: star schema (PostgreSQL `gold`, exported to `data/gold/<table>.parquet`)
 
 The Parquet files are written from PostgreSQL, and the export fails if a file's row count differs from its table's. Dates are stored as Parquet `date32`.
@@ -91,7 +116,7 @@ The Parquet files are written from PostgreSQL, and the export fails if a file's 
 
 **`dim_source`**: `source_id` (key), `name`, `url`, `licence`.
 
-**`dim_model`**, **`dim_method`**, **`dim_regime`**: reference lists of the volatility models, VaR methods and market regimes used by later stages (`*_id`, `name`, `description`).
+**`dim_model`**, **`dim_method`**, **`dim_regime`**: reference lists of the forecasting models, VaR methods and market regimes used by later stages (`*_id`, `name`, `description`). `dim_model` also has `target`: `volatility` for the models of `fact_forecast`, `volume` for those of `fact_volume_forecast`.
 
 **`fact_market`**: one row per instrument and reporting day.
 
@@ -191,6 +216,32 @@ Key: (`for_date`, `method_id`).
 
 **`fact_backtest_summary`**: one row per VaR method and period (the whole period, labelled by its first and last year, and the stress years 2020 and 2022): `n_days`, `n_exceptions`, `expected_exceptions` (1% of the days), `kupiec_p` (proportion of failures, Kupiec 1995), `christoffersen_p` (independence, Christoffersen 1998), `conditional_coverage_p` (both jointly, 2 degrees of freedom), `worst_zone` (worst 250-day zone reached in the period) and `zone_at_end`. Key: (`method_id`, `period`).
 
+**`fact_volume_forecast`**: next-session volume forecasts for the ten stocks from 2018, rebuilt by [`pipeline/volume_models.py`](../pipeline/volume_models.py) at every run.
+
+| Column | Type | Description |
+|---|---|---|
+| `date` | date | Session forecast; the forecast uses data known before it opens. The last row is the next session, not traded yet; to `dim_date` |
+| `instrument_id` | text | To `dim_instrument` |
+| `model_id` | text | To `dim_model`: `adv20` (20-day average daily volume), `har_volume` (regression on the 1-, 5- and 22-session means of log volume), `xgboost_volume` (the HAR terms, calendar flags of the session, EWMA volatility and VIX) |
+| `forecast_vs_adv` | double | Forecast volume as a multiple of the 20-day ADV at the previous close (1 for `adv20`). Log-volume models are back-transformed with `exp`, so they forecast the typical session rather than the mean |
+| `actual_vs_adv` | double | Shares traded in the session, as a multiple of the same ADV; empty for the next session |
+
+Key: (`date`, `instrument_id`, `model_id`). Models are refitted at the start of each month on all past sessions but the last, whose target falls in the new month. Calendar flags: weekday, third Friday (monthly expiry), third Friday of March, June, September and December (quarterly expiry), last session of the month, session before a holiday.
+
+**`fact_volume_evaluation`**: accuracy of each volume model per stock and period (the whole test period and the years 2020 and 2022), on the sessions where every model has a forecast and the volume is known: `n_days`, `mse_log` (mean squared error of the log volume), `mape` (mean absolute error as a share of the actual volume), `dm_stat_vs_adv` and `dm_p_vs_adv` (Diebold-Mariano statistic and two-sided p-value on squared log errors against `adv20`, Newey-West variance; a negative statistic favours the model; empty for `adv20`). Key: (`instrument_id`, `period`, `model_id`).
+
+**`fact_liquidity`**: inputs of the pre-trade cost for each stock and session from April 2008, rebuilt by [`pipeline/costs.py`](../pipeline/costs.py) at every run. Every column uses data up to the previous close.
+
+| Column | Type | Description |
+|---|---|---|
+| `date` | date | Session; to `dim_date` |
+| `instrument_id` | text | To `dim_instrument` |
+| `spread_estimate_bp` | double | Corwin and Schultz (2012) bid-ask spread estimate from the highs and lows of the two previous sessions, after removing the overnight gap, in basis points; signed (about 40% of the estimates are negative for these stocks) |
+| `spread_bp` | double | Mean of the last 63 estimates, floored at zero |
+| `volatility_bp` | double | EWMA (λ = 0.94) daily volatility forecast of the dividend-adjusted return, in basis points |
+
+**`fact_cost`**: pre-trade cost of an order of 1%, 5%, 10% and 20% of the session's volume (`participation`): `spread_bp`, `impact_bp` (`Y × volatility_bp × √participation`, Y = 1, the upper end of the 0.5 to 1 range reported by Tóth, Eisler and Bouchaud, 2016) and `cost_bp` (`spread_bp / 2 + impact_bp`). Key: (`date`, `instrument_id`, `participation`).
+
 ### `fact_dq`: one row per run, instrument and rule
 
 | Column | Type | Description |
@@ -241,9 +292,10 @@ A **critical** rule stops the pipeline before the silver tables (`python -m pipe
 | `yield_out_of_range` | Critical | `EUR10Y_AAA` | Outside −2% to 15% | Observed range since 2008 is −0.82% to 4.78%; the bounds catch unit or scaling errors |
 | `missing_trading_day` | Warning | Series with a calendar | Session without data | Gaps can be real feed holes or calendar differences; they are documented, not deleted |
 | `stale_value` | Warning | Every series | Same value 3 days in a row | A frozen feed repeats the last value |
-| `large_move` | Warning | Equity indices, gold, FX | Daily change above 15% | The largest real move since 2008 is 12.4% (Euro Stoxx 50, 12 March 2020); real crashes must be kept |
+| `large_move` | Warning | Equity indices, gold, FX; single stocks | Daily change above 15%; 25% for single stocks | The largest real move since 2008 is 12.4% for the indices (Euro Stoxx 50, 12 March 2020) and 22.2% for the stocks (Airbus, 18 March 2020); real crashes must be kept |
 | `late_data` | Warning | Every series | Last date before the previous session | Some sources publish the next morning; a late day is not an error |
 | `fx_cross_source` | Warning | `EURUSD_YAHOO` vs `EURUSD` | Relative gap above 2% | The two sources fix at different times; 2% is about 3.6 daily standard deviations of EUR/USD (0.56%) |
+| `zero_volume` | Warning | The ten stocks | Volume of 0 | A stock with no trade in a session is a feed gap or a holiday bar; the day is left out of `silver.daily_bar` |
 
 ## Known data issues (checked on 2026-10-21, FRED on 2026-10-22)
 
@@ -254,6 +306,7 @@ A **critical** rule stops the pipeline before the silver tables (`python -m pipe
 - **Yahoo gold:** 3 NYSE sessions missing (2016-10-10, 2016-11-11, 2018-01-29).
 - **Yahoo EUR/USD:** 1 value repeated 3 days in a row (2013-06-12), 1 daily move of +17.3% (2008-12-08, part of the August 2008 issue).
 - **Volume:** not used for indices. Yahoo reports zero volume on 1,413 days for the Euro Stoxx 50 and on every day for EUR/USD.
+- **Yahoo stocks (checked on 2026-10-22):** the ten stocks lack the same 5 sessions (24 and 31 December 2010 and 2012, 31 December 2015). All ten have a bar with zero volume on two holidays (1 May 2014, 25 December 2019); TotalEnergies also has flat bars with zero volume on 3 and 4 June 2021, a feed gap. Seven runs of three equal closes: Airbus 2010-11-19, Vinci 2014-11-24, L'Oréal 2016-08-02, 2016-08-25 and 2025-07-03, TotalEnergies 2021-06-04 (the gap above), LVMH 2021-08-09.
 - **FRED:** unavailable from 2026-10-21 to the morning of 2026-10-22 (a "proactive maintenance" page served with HTTP 200, the same day as the PHP2Shell disclosure); downloaded on 2026-10-22, 2008-01-02 to 2026-10-21.
 - **FRED VIX:** published the next day, so it is one session late at each morning run (`late_data` warning).
 - **FRED US 10-year minus 2-year:** quoted to two decimals in percentage points, so the same value often repeats over several days: 88 `stale_value` warnings since 2008, a property of the series rather than a feed outage.
