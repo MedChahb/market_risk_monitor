@@ -1,19 +1,19 @@
 # Market Risk Monitor
 
-Market risk monitoring of a fictional multi-asset trading book in euros (equities, gold, euro rates, USD).
+Market risk monitoring of a fictional multi-asset trading book in euros (equities, gold, euro rates, USD), and pre-trade volume and cost estimates for ten large French stocks.
 
-The goal: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall, and backtests them, with the results reported in Power BI.
+The goal: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall and backtests them, forecasts traded volumes and estimates the cost of an order, with the results reported in Power BI.
 
-**Status:** v1.0 (19 October 2026): data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest, and a six-page Power BI report. Scheduling and monitoring, trading costs, market regimes, anomaly detection and a public web app come next.
+**Status:** v1.0 (19 October 2026): data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest, and a six-page Power BI report. Since v1.0: volume forecasts and pre-trade costs for ten CAC 40 stocks, with an Execution page in the report. Scheduling and monitoring, market regimes, anomaly detection and a public web app come next.
 
 ## Data lineage
 
 ```mermaid
 flowchart LR
-    Y[Yahoo Finance<br/>indices, gold, EUR/USD check] --> R[(raw Parquet<br/>data/raw)]
+    Y[Yahoo Finance<br/>indices, gold, 10 CAC 40 stocks,<br/>EUR/USD check] --> R[(raw Parquet<br/>data/raw)]
     E[ECB Data Portal<br/>EUR/USD, AAA 2y and 10y yields] --> R
     F[FRED<br/>VIX, US 10y-2y] --> R
-    R --> Q{quality gate<br/>pandera + 9 rules}
+    R --> Q{quality gate<br/>pandera + 10 rules}
     Q -->|critical failure| X[pipeline stops]
     Q -->|results| DQ[(fact_dq, dq_flags)]
     Q -->|pass| S[(PostgreSQL silver<br/>aligned daily series)]
@@ -26,14 +26,18 @@ flowchart LR
     VR --> G
     VR --> BT[backtest<br/>Kupiec, Christoffersen, traffic light]
     BT --> G
+    S --> VM[volume models<br/>ADV, HAR, XGBoost]
+    VM --> G
+    S --> C[pre-trade costs<br/>spread + square-root impact]
+    C --> G
     DQ --> G
     G --> P[gold Parquet<br/>data/gold]
     P --> BI[Power BI report]
 ```
 
-Ten daily series from 2008, described with their units, calendars, licences and known issues in the [data dictionary](docs/data_dictionary.md). Critical rules (schema, duplicate keys, non-positive prices, yields out of range) stop the pipeline; warnings (missing sessions, stale values, moves above 15%, late data, Yahoo vs ECB EUR/USD gap above 2%) are stored and reported.
+Twenty daily series from 2008, described with their units, calendars, licences and known issues in the [data dictionary](docs/data_dictionary.md). Critical rules (schema, duplicate keys, non-positive prices, yields out of range) stop the pipeline; warnings (missing sessions, stale values, moves above 15% for indices and 25% for stocks, late data, Yahoo vs ECB EUR/USD gap above 2%, zero volume) are stored and reported.
 
-Silver aligns every series on the days when Paris or New York trades, carrying the last value forward on a market holiday or a feed gap, with the reason recorded. Gold is a star schema (`fact_market`, `fact_dq` around `dim_date`, `dim_instrument` and reference dimensions) with a trading-day index for rolling windows; it is exported to Parquet for the report, with raw levels only where the source licence allows it.
+Silver aligns every series on the days when Paris or New York trades, carrying the last value forward on a market holiday or a feed gap, with the reason recorded; the stocks keep their own daily bars. Gold is a star schema (`fact_market`, `fact_dq` around `dim_date`, `dim_instrument` and reference dimensions) with a trading-day index for rolling windows; it is exported to Parquet for the report, with raw levels only where the source licence allows it.
 
 ## The book
 
@@ -83,9 +87,25 @@ Each day's VaR is compared with the book's actual P&L on the day it covers, over
 
 Filtered historical simulation is the recommended risk figure: the only method that passes every test, including 2020 (3 exceptions for 2.6 expected) and 2022 (3 for 2.6), with 93% of days in the green zone and none in the red. The normal parametric methods are exceeded too often even with the GJR forecast, consistent with the fat tails of the returns; historical simulation adds clustered exceptions to that.
 
+## Volumes and trading costs
+
+For ten large CAC 40 stocks (the ten largest weights on 31 March 2017, fixed before the test period to avoid picking past winners), the pipeline forecasts the next session's traded volume and estimates the cost of an order ([`pipeline/volume_models.py`](pipeline/volume_models.py), [`pipeline/costs.py`](pipeline/costs.py), analysis in [`notebooks/05_execution.ipynb`](notebooks/05_execution.ipynb)). Volume is the number of shares traded on Euronext Paris, which Yahoo reports exactly as Euronext publishes it.
+
+| Next-session volume, 2018-2026, mean of 10 stocks | 20-day ADV | HAR (log volume) | XGBoost (log volume) |
+|---|---|---|---|
+| Mean squared error of log volume | 0.145 | 0.115 | 0.095 |
+| Mean absolute percentage error | 31.8% | 26.9% | 25.1% |
+| Stocks significantly better than the ADV (Diebold-Mariano, 5%) | | 10 | 10 |
+
+Both models beat the desks' 20-day ADV on every stock, also in 2020 and 2022, and XGBoost beats HAR on all ten: the calendar drives volume (quarterly expiry days trade 2.35 times the ADV, the session before a holiday 0.54 times), which XGBoost sees through its calendar flags.
+
+The pre-trade cost is half the bid-ask spread plus the square-root market impact, `Y × daily volatility × √(order / volume)` with Y = 1 (Tóth et al., 2011; Tóth, Eisler and Bouchaud, 2016). On 22 October 2026 an order of 10% of the session's volume costs 35 to 60 bp depending on the stock; the same order in TotalEnergies cost about three times its median in March 2020. The spread is estimated from daily highs and lows (Corwin and Schultz, 2012); for stocks this liquid those estimates are dominated by noise, so the pipeline averages the signed estimates over 63 sessions instead of clipping them at zero, which would inflate the spread to 37-52 bp.
+
+**Limits.** Volume covers Euronext Paris only, not the other venues where these shares trade; spreads are estimated, not quoted; Y comes from published studies, not from the desk's own executions, which post-trade TCA would use to calibrate it.
+
 ## Power BI report
 
-Six pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`](powerbi/): the semantic model in TMDL (43 measures) and the pages in PBIR, so every change to a measure or a visual is a reviewable diff. Report changes are listed in [CHANGELOG.md](CHANGELOG.md); the full report is also in [`docs/report.pdf`](docs/report.pdf).
+Seven pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`](powerbi/): the semantic model in TMDL (56 measures) and the pages in PBIR, so every change to a measure or a visual is a reviewable diff. Report changes are listed in [CHANGELOG.md](CHANGELOG.md); the full report is also in [`docs/report.pdf`](docs/report.pdf).
 
 **Risk.** The latest VaR and ES of the book for the selected method (filtered historical simulation by default), the 250-day exception count and Basel traffic light, the daily P&L against the VaR with exception days in red, and the backtest of the five methods.
 
@@ -94,6 +114,10 @@ Six pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`
 **Models.** Volatility forecasts against realised volatility for any series and model, the QLIKE of every model on every series, and Diebold-Mariano tests against HAR.
 
 ![Models page](docs/images/report_models.png)
+
+**Execution.** For the chosen stock: the next session's volume forecast, spread and volatility, the cost of an order whose size is set with a slider, the cost curve against order size, the forecast against actual volume and the volume models' tests against the ADV.
+
+![Execution page](docs/images/report_execution.png)
 
 **Market.** Return, volatility, worst day and drawdown over the selected dates; indices rebased to 100 on a log scale, 22-day volatility and the euro AAA 2-year and 10-year yields.
 
@@ -123,6 +147,8 @@ docker compose up -d               # PostgreSQL 16 on 127.0.0.1:5432
 .venv/bin/python -m pipeline.vol_models                   # volatility forecasts (the GRU: about 30 min on a GPU, 70 on CPU)
 .venv/bin/python -m pipeline.var                          # daily VaR and ES of the book
 .venv/bin/python -m pipeline.backtest                     # exceptions, Kupiec, Christoffersen, traffic light
+.venv/bin/python -m pipeline.volume_models                # next-session volume forecasts of the ten stocks
+.venv/bin/python -m pipeline.costs                        # spreads and pre-trade costs
 .venv/bin/python -m pipeline.publish                      # gold tables to data/gold/*.parquet
 .venv/bin/pytest                                           # tests (database tests skip without PostgreSQL)
 ```
