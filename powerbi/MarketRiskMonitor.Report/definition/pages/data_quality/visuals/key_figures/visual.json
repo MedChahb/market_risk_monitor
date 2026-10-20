@@ -23,6 +23,20 @@
                       "Entity": "_Measures"
                     }
                   },
+                  "Property": "Pass Rate (latest run)"
+                }
+              },
+              "queryRef": "_Measures.Pass Rate (latest run)",
+              "nativeQueryRef": "Pass Rate (latest run)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
                   "Property": "Critical Failures (latest run)"
                 }
               },

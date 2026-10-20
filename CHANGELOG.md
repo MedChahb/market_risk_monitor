@@ -2,6 +2,10 @@
 
 Changes to the Power BI report in `powerbi/`, newest first.
 
+## Unreleased
+
+- 2026-10-20: Execution page: next-session volume forecast against actual volume for ten CAC 40 stocks, the volume models' losses and Diebold-Mariano tests against the 20-day ADV, the cost of an order chosen with an order-size slider, the next session's cost curve and the cost history; 13 new measures, an order-size what-if parameter and four gold tables. The stocks stay out of the Market page and the volume models out of the Models page; the quality grid takes the full width for twenty series and the pass rate moves to the key figures; the Read me page lists the definitions on the right.
+
 ## v1.0 (2026-10-19)
 
 - 2026-10-19: Risk page headline on the full width with the slicers below it, exact amounts in the key figures, no exception count before 2012; empty Diebold-Mariano p-values left uncoloured; wider quality grid for the eleven series; spacing on the Read me page; the GJR parametric method named as in the notebooks.

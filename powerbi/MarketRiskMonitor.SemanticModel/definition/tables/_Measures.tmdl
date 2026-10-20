@@ -403,6 +403,122 @@ table _Measures
 		displayFolder: Models
 		lineageTag: 6ea926f0-a7b6-5117-8eac-7e6726244219
 
+	/// Forecast volume of the session as a multiple of the 20-day ADV at the previous close. One model and one stock at a time.
+	measure 'Volume Forecast (× ADV)' =
+			IF (
+			    HASONEVALUE ( dim_model[model_id] ) && HASONEVALUE ( dim_instrument[instrument_id] ),
+			    AVERAGE ( fact_volume_forecast[forecast_vs_adv] )
+			)
+		formatString: 0.00
+		displayFolder: Execution
+		lineageTag: 41555f78-5347-5643-8d81-986e8908ea63
+
+	/// Shares traded on Euronext Paris in the session, as a multiple of the 20-day ADV at the previous close. One stock at a time.
+	measure 'Volume Actual (× ADV)' =
+			IF (
+			    HASONEVALUE ( dim_instrument[instrument_id] ),
+			    CALCULATE (
+			        AVERAGE ( fact_volume_forecast[actual_vs_adv] ),
+			        REMOVEFILTERS ( dim_model ),
+			        fact_volume_forecast[model_id] = "adv20"
+			    )
+			)
+		formatString: 0.00
+		displayFolder: Execution
+		lineageTag: ec4168aa-60bb-556e-9785-d0ab0b765192
+
+	/// The session the latest forecasts and cost estimates are for, whatever the date filter.
+	measure 'Next Session' =
+			CALCULATE ( MAX ( fact_liquidity[date] ), REMOVEFILTERS ( dim_date ) )
+		formatString: dd mmm yyyy
+		displayFolder: Execution
+		lineageTag: 72878d1e-1329-58b5-ae3f-7902bd790c83
+
+	/// The selected model's volume forecast for the next session, as a multiple of the 20-day ADV.
+	measure 'Next Session Volume (× ADV)' =
+			VAR SessionDate = [Next Session]
+			RETURN
+			    CALCULATE ( [Volume Forecast (× ADV)], REMOVEFILTERS ( dim_date ), dim_date[Date] = SessionDate )
+		formatString: 0.00
+		displayFolder: Execution
+		lineageTag: c3c1acd2-4de5-52fe-94d4-24980d15c106
+
+	/// Corwin-Schultz bid-ask spread: mean of the last 63 signed estimates, floored at zero, in basis points. One stock at a time.
+	measure 'Spread (bp)' =
+			IF ( HASONEVALUE ( dim_instrument[instrument_id] ), AVERAGE ( fact_liquidity[spread_bp] ) )
+		formatString: 0.0
+		displayFolder: Execution
+		lineageTag: ed36b958-6f46-5a6d-ab96-4b1b67ff16d7
+
+	/// EWMA forecast of the daily volatility at the previous close, in basis points. One stock at a time.
+	measure 'Volatility, Daily (bp)' =
+			IF ( HASONEVALUE ( dim_instrument[instrument_id] ), AVERAGE ( fact_liquidity[volatility_bp] ) )
+		formatString: 0.0
+		displayFolder: Execution
+		lineageTag: 91797e0d-7980-5d34-a07b-068a0cc6ce48
+
+	/// Prefactor of the square-root law; published estimates for stocks and futures range from 0.5 to 1 (Tóth, Eisler and Bouchaud, 2016).
+	measure 'Impact Constant Y' =
+			1
+		formatString: 0.0
+		displayFolder: Execution
+		lineageTag: 532a0355-d859-52dd-8b3a-e12e759b2786
+
+	/// Order size chosen with the slider, as a share of the session's volume; 5% when nothing is selected.
+	measure 'Order Size' =
+			SELECTEDVALUE ( 'Order Size Parameter'[Order Size (% of volume)], 5 ) / 100
+		formatString: 0%
+		displayFolder: Execution
+		lineageTag: cf092f97-d97a-5ec0-8331-49dbe216dda8
+
+	/// Pre-trade cost of an order of the chosen size: half the spread plus Y x daily volatility x square root of the order size. One stock at a time.
+	measure 'Cost at Order Size (bp)' =
+			VAR Spread = [Spread (bp)]
+			VAR Volatility = [Volatility, Daily (bp)]
+			RETURN
+			    IF ( NOT ISBLANK ( Spread ), Spread / 2 + [Impact Constant Y] * Volatility * SQRT ( [Order Size] ) )
+		formatString: 0.0
+		displayFolder: Execution
+		lineageTag: 2d7a24c3-1a61-5629-be79-37f0eebc87b6
+
+	/// Spread estimate for the next session.
+	measure 'Spread, Next Session (bp)' =
+			VAR SessionDate = [Next Session]
+			RETURN
+			    CALCULATE ( [Spread (bp)], REMOVEFILTERS ( dim_date ), dim_date[Date] = SessionDate )
+		formatString: 0.00
+		displayFolder: Execution
+		lineageTag: 9132d605-2ed6-51f6-bf0d-85de126ae657
+
+	/// Daily volatility forecast for the next session.
+	measure 'Volatility, Next Session (bp)' =
+			VAR SessionDate = [Next Session]
+			RETURN
+			    CALCULATE ( [Volatility, Daily (bp)], REMOVEFILTERS ( dim_date ), dim_date[Date] = SessionDate )
+		formatString: 0.00
+		displayFolder: Execution
+		lineageTag: c35d75da-4309-5ca0-817c-fc59e825790c
+
+	/// Pre-trade cost of an order of the chosen size in the next session, in basis points.
+	measure 'Cost at Order Size, Next Session (bp)' =
+			VAR SessionDate = [Next Session]
+			RETURN
+			    CALCULATE ( [Cost at Order Size (bp)], REMOVEFILTERS ( dim_date ), dim_date[Date] = SessionDate )
+		formatString: 0.00
+		displayFolder: Execution
+		lineageTag: 19393717-3d38-5c83-a0ff-690c24556ce4
+
+	/// Cost in the next session for each order size of the curve's axis, from 1% to 30% of the volume.
+	measure 'Cost Curve, Next Session (bp)' =
+			VAR Spread = [Spread, Next Session (bp)]
+			VAR Volatility = [Volatility, Next Session (bp)]
+			VAR Size = SELECTEDVALUE ( 'Cost Curve Axis'[Order Size, Curve (% of volume)] ) / 100
+			RETURN
+			    IF ( NOT ISBLANK ( Spread ) && NOT ISBLANK ( Size ), Spread / 2 + [Impact Constant Y] * Volatility * SQRT ( Size ) )
+		formatString: 0.0
+		displayFolder: Execution
+		lineageTag: d5c5d75c-7fee-55c3-9ff7-ff4fe27070b3
+
 	column Value
 		isHidden
 		lineageTag: 0db324dc-f805-5ee1-b468-98e61f561b4d

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "title",
+  "position": {
+    "x": 32,
+    "y": 32,
+    "z": 0,
+    "width": 1856,
+    "height": 80,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "textbox",
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'XGBoost beats the 20-day ADV on all 10 stocks (25.1% mean error against 31.8%); 10% of the volume costs 35 to 60 bp on 22 Oct 2026'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "XGBoost beats the 20-day ADV on all 10 stocks (25.1% mean error against 31.8%); 10% of the volume costs 35 to 60 bp on 22 Oct 2026",
+                    "textStyle": {
+                      "fontWeight": "bold",
+                      "fontSize": "18pt",
+                      "color": "#0b0b0b"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Volume: shares traded on Euronext Paris, as multiples of the 20-day ADV. Cost = half the estimated spread + Y × daily volatility × √(order / volume), Y = 1, estimated at the previous close.",
+                    "textStyle": {
+                      "fontSize": "11pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -3,6 +3,7 @@
   "pageOrder": [
     "risk",
     "models",
+    "execution",
     "market",
     "correlation",
     "data_quality",

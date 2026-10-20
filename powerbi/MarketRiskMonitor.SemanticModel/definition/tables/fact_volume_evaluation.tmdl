@@ -1,0 +1,84 @@
+table fact_volume_evaluation
+	lineageTag: 4be5a3ff-d225-5cb2-9284-fce33b24519a
+
+	column instrument_id
+		dataType: string
+		isHidden
+		lineageTag: e2c5e5e8-b621-51bd-a6e2-a0f231c63f34
+		summarizeBy: none
+		sourceColumn: instrument_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Volume Evaluation Period'
+		dataType: string
+		lineageTag: a7010777-ef60-5fc1-b5d6-9b19805976eb
+		summarizeBy: none
+		sourceColumn: period
+
+		annotation SummarizationSetBy = Automatic
+
+	column model_id
+		dataType: string
+		isHidden
+		lineageTag: 9a481d39-ce71-5cca-9dbb-723dd92f193b
+		summarizeBy: none
+		sourceColumn: model_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Volume Evaluation Days'
+		dataType: int64
+		formatString: #,##0
+		lineageTag: fa0516c1-cfef-5dfe-ba4e-eecc298c2617
+		summarizeBy: none
+		sourceColumn: n_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'MSE (log volume)'
+		dataType: double
+		formatString: 0.0000
+		lineageTag: 798286b5-4e70-56dd-b6e4-768225bf91a0
+		summarizeBy: none
+		sourceColumn: mse_log
+
+		annotation SummarizationSetBy = Automatic
+
+	column MAPE
+		dataType: double
+		formatString: 0.0%
+		lineageTag: 11c19e91-9c93-5375-bda0-68301be7815e
+		summarizeBy: none
+		sourceColumn: mape
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'DM Statistic vs ADV'
+		dataType: double
+		formatString: 0.00
+		lineageTag: 25818e0c-7c4c-5759-9fac-0c49a8ebb44b
+		summarizeBy: none
+		sourceColumn: dm_stat_vs_adv
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'DM p vs ADV'
+		dataType: double
+		formatString: 0.0000
+		lineageTag: 2856b8ff-314f-57e7-a3a3-ec270ac6d048
+		summarizeBy: none
+		sourceColumn: dm_p_vs_adv
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_volume_evaluation = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_volume_evaluation.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"instrument_id", type text}, {"period", type text}, {"model_id", type text}, {"n_days", Int64.Type}, {"mse_log", type number}, {"mape", type number}, {"dm_stat_vs_adv", type number}, {"dm_p_vs_adv", type number}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

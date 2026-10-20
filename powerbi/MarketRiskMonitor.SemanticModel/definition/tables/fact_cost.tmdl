@@ -1,0 +1,70 @@
+table fact_cost
+	lineageTag: a33b39f5-1c02-5c7a-b29e-4bfb3e0cd368
+
+	column date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: 10c9e79b-52b4-5736-9cc2-32418be31eda
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column instrument_id
+		dataType: string
+		isHidden
+		lineageTag: be54f99f-3a3d-5804-bbdb-0c120537edd5
+		summarizeBy: none
+		sourceColumn: instrument_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Participation
+		dataType: double
+		formatString: 0%
+		lineageTag: 44054718-72c8-5f72-8d56-1061b16aefba
+		summarizeBy: none
+		sourceColumn: participation
+
+		annotation SummarizationSetBy = Automatic
+
+	column spread_bp
+		dataType: double
+		isHidden
+		lineageTag: bc81b7aa-3f99-5b34-a780-cb5769040d22
+		summarizeBy: none
+		sourceColumn: spread_bp
+
+		annotation SummarizationSetBy = Automatic
+
+	column impact_bp
+		dataType: double
+		isHidden
+		lineageTag: 96f96d87-7367-596f-95a8-4773a3f6bd18
+		summarizeBy: none
+		sourceColumn: impact_bp
+
+		annotation SummarizationSetBy = Automatic
+
+	column cost_bp
+		dataType: double
+		isHidden
+		lineageTag: eb04de05-5231-5ec0-84e0-e2cfea9a3013
+		summarizeBy: none
+		sourceColumn: cost_bp
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_cost = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_cost.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"date", type date}, {"instrument_id", type text}, {"participation", type number}, {"spread_bp", type number}, {"impact_bp", type number}, {"cost_bp", type number}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

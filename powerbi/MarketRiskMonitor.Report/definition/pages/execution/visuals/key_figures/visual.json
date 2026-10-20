@@ -1,0 +1,136 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "key_figures",
+  "position": {
+    "x": 32,
+    "y": 224,
+    "z": 5000,
+    "width": 1856,
+    "height": 112,
+    "tabOrder": 5000
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Next Session"
+                }
+              },
+              "queryRef": "_Measures.Next Session",
+              "nativeQueryRef": "Next Session"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Next Session Volume (× ADV)"
+                }
+              },
+              "queryRef": "_Measures.Next Session Volume (× ADV)",
+              "nativeQueryRef": "Next Session Volume (× ADV)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Spread, Next Session (bp)"
+                }
+              },
+              "queryRef": "_Measures.Spread, Next Session (bp)",
+              "nativeQueryRef": "Spread, Next Session (bp)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Volatility, Next Session (bp)"
+                }
+              },
+              "queryRef": "_Measures.Volatility, Next Session (bp)",
+              "nativeQueryRef": "Volatility, Next Session (bp)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Order Size"
+                }
+              },
+              "queryRef": "_Measures.Order Size",
+              "nativeQueryRef": "Order Size"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Cost at Order Size, Next Session (bp)"
+                }
+              },
+              "queryRef": "_Measures.Cost at Order Size, Next Session (bp)",
+              "nativeQueryRef": "Cost at Order Size, Next Session (bp)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Next session''s volume forecast, spread, volatility and cost of the chosen order size'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

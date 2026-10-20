@@ -60,7 +60,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Daily market risk of a fictional 10 M€ multi-asset book (CAC 40, Euro Stoxx 50, S&P 500, gold, a 10-year euro zero-coupon bond and USD cash, constant notionals), built from free data by a scheduled Python pipeline.",
+                    "value": "Daily market risk of a fictional 10 M€ multi-asset book (CAC 40, Euro Stoxx 50, S&P 500, gold, a 10-year euro zero-coupon bond and USD cash, constant notionals), and pre-trade volume and cost estimates for ten large CAC 40 stocks, built from free data by a scheduled Python pipeline.",
                     "textStyle": {
                       "fontSize": "12pt",
                       "color": "#52514e"
@@ -112,6 +112,17 @@
               {
                 "textRuns": [
                   {
+                    "value": "Execution: next-session volume forecasts and the cost of an order, with an order-size slider.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
                     "value": "Market: returns, volatility, drawdowns and rates of the book's assets.",
                     "textStyle": {
                       "fontSize": "12pt",
@@ -152,91 +163,6 @@
               {
                 "textRuns": [
                   {
-                    "value": "Definitions",
-                    "textStyle": {
-                      "fontWeight": "bold",
-                      "fontSize": "13pt",
-                      "color": "#0b0b0b"
-                    }
-                  }
-                ]
-              },
-              {
-                "textRuns": [
-                  {
-                    "value": "VaR 99%, 1 day: the loss exceeded on 1% of days, computed at each close for the next trading day.",
-                    "textStyle": {
-                      "fontSize": "12pt",
-                      "color": "#52514e"
-                    }
-                  }
-                ]
-              },
-              {
-                "textRuns": [
-                  {
-                    "value": "Expected Shortfall 97.5%: the average loss on the worst 2.5% of days.",
-                    "textStyle": {
-                      "fontSize": "12pt",
-                      "color": "#52514e"
-                    }
-                  }
-                ]
-              },
-              {
-                "textRuns": [
-                  {
-                    "value": "Exception: a day whose loss exceeds the VaR computed at the previous close.",
-                    "textStyle": {
-                      "fontSize": "12pt",
-                      "color": "#52514e"
-                    }
-                  }
-                ]
-              },
-              {
-                "textRuns": [
-                  {
-                    "value": "Basel traffic light: exceptions over the last 250 days; green 0 to 4, yellow 5 to 9, red 10 or more.",
-                    "textStyle": {
-                      "fontSize": "12pt",
-                      "color": "#52514e"
-                    }
-                  }
-                ]
-              },
-              {
-                "textRuns": [
-                  {
-                    "value": "QLIKE: loss function for variance forecasts, robust to noisy realised measures; lower is better.",
-                    "textStyle": {
-                      "fontSize": "12pt",
-                      "color": "#52514e"
-                    }
-                  }
-                ]
-              },
-              {
-                "textRuns": [
-                  {
-                    "value": "Diebold-Mariano: test of equal forecast accuracy between two models.",
-                    "textStyle": {
-                      "fontSize": "12pt",
-                      "color": "#52514e"
-                    }
-                  }
-                ]
-              },
-              {
-                "textRuns": [
-                  {
-                    "value": ""
-                  }
-                ]
-              },
-              {
-                "textRuns": [
-                  {
                     "value": "Data and refresh",
                     "textStyle": {
                       "fontWeight": "bold",
@@ -249,7 +175,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Yahoo Finance (equity indices, gold), ECB Data Portal (EUR/USD reference rate, AAA yields) and FRED (VIX, US 10y-2y). Raw Yahoo levels are not redistributed. The report reads the gold Parquet files through the DataFolder parameter (Transform data, Edit parameters), then Refresh.",
+                    "value": "Yahoo Finance (equity indices, gold, ten CAC 40 stocks), ECB Data Portal (EUR/USD reference rate, AAA yields) and FRED (VIX, US 10y-2y). Raw Yahoo levels and volumes are not redistributed. The report reads the gold Parquet files through the DataFolder parameter (Transform data, Edit parameters), then Refresh.",
                     "textStyle": {
                       "fontSize": "12pt",
                       "color": "#52514e"

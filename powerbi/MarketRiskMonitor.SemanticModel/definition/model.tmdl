@@ -16,7 +16,7 @@ annotation __PBI_TimeIntelligenceEnabled = 0
 
 annotation PBI_ProTooling = ["DevMode"]
 
-annotation PBI_QueryOrder = ["dim_date","dim_instrument","dim_source","dim_position","fact_market","fact_correlation","fact_pnl","fact_dq","fact_dq_flags","fact_freshness","DataFolder"]
+annotation PBI_QueryOrder = ["dim_date","dim_instrument","dim_source","dim_position","fact_market","fact_correlation","fact_pnl","fact_dq","fact_dq_flags","fact_freshness","DataFolder","dim_method","dim_model","dim_series","fact_var","fact_backtest","fact_backtest_summary","fact_forecast","fact_forecast_evaluation","fact_volume_forecast","fact_volume_evaluation","fact_liquidity","fact_cost"]
 
 ref table dim_date
 ref table dim_instrument
@@ -29,9 +29,6 @@ ref table fact_dq
 ref table fact_dq_flags
 ref table fact_freshness
 ref table _Measures
-
-ref cultureInfo en-GB
-
 ref table dim_method
 ref table dim_model
 ref table dim_series
@@ -40,3 +37,12 @@ ref table fact_backtest
 ref table fact_backtest_summary
 ref table fact_forecast
 ref table fact_forecast_evaluation
+ref table fact_volume_forecast
+ref table fact_volume_evaluation
+ref table fact_liquidity
+ref table fact_cost
+ref table 'Cost Curve Axis'
+
+ref cultureInfo en-GB
+
+ref table 'Order Size Parameter'

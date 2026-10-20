@@ -1,0 +1,61 @@
+table fact_liquidity
+	lineageTag: 337e9d09-4552-5bff-962b-82d07b8e0a56
+
+	column date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: 503baabf-f152-5114-a747-6b98ff56dc9f
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column instrument_id
+		dataType: string
+		isHidden
+		lineageTag: e01d3cec-dc7d-5f42-b72a-29077cf76053
+		summarizeBy: none
+		sourceColumn: instrument_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column spread_estimate_bp
+		dataType: double
+		isHidden
+		lineageTag: 632f41f3-183a-5dbe-bd41-e2b5a6934a22
+		summarizeBy: none
+		sourceColumn: spread_estimate_bp
+
+		annotation SummarizationSetBy = Automatic
+
+	column spread_bp
+		dataType: double
+		isHidden
+		lineageTag: ae4d71c5-45db-504c-b98e-2194f43d01c8
+		summarizeBy: none
+		sourceColumn: spread_bp
+
+		annotation SummarizationSetBy = Automatic
+
+	column volatility_bp
+		dataType: double
+		isHidden
+		lineageTag: caba8620-2f38-503c-801a-eb9a6cf4963a
+		summarizeBy: none
+		sourceColumn: volatility_bp
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_liquidity = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_liquidity.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"date", type date}, {"instrument_id", type text}, {"spread_estimate_bp", type number}, {"spread_bp", type number}, {"volatility_bp", type number}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
