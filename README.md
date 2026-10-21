@@ -4,7 +4,7 @@ Market risk monitoring of a fictional multi-asset trading book in euros (equitie
 
 The goal: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall and backtests them, forecasts traded volumes and estimates the cost of an order, with the results reported in Power BI.
 
-**Status:** v1.0 (19 October 2026): data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest, and a six-page Power BI report. Since v1.0: volume forecasts and pre-trade costs for ten CAC 40 stocks, with an Execution page in the report. Scheduling and monitoring, market regimes, anomaly detection and a public web app come next.
+**Status:** v1.0 (19 October 2026): data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest, and a six-page Power BI report. Since v1.0: volume forecasts and pre-trade costs for ten CAC 40 stocks, with an Execution page in the report, and daily market regimes. Scheduling and monitoring, anomaly detection and a public web app come next.
 
 ## Data lineage
 
@@ -30,6 +30,8 @@ flowchart LR
     VM --> G
     S --> C[pre-trade costs<br/>spread + square-root impact]
     C --> G
+    G --> MR[market regimes<br/>HMM, walk-forward]
+    MR --> G
     DQ --> G
     G --> P[gold Parquet<br/>data/gold]
     P --> BI[Power BI report]
@@ -103,6 +105,20 @@ The pre-trade cost is half the bid-ask spread plus the square-root market impact
 
 **Limits.** Volume covers Euronext Paris only, not the other venues where these shares trade; spreads are estimated, not quoted; Y comes from published studies, not from the desk's own executions, which post-trade TCA would use to calibrate it.
 
+## Market regimes
+
+Each day is labelled calm, normal or stress by a three-state Gaussian hidden Markov model on equity volatility, the 22-day equity return, the 63-day correlation between the equity indices and the VIX ([`pipeline/regimes.py`](pipeline/regimes.py), analysis in [`notebooks/06_regimes.ipynb`](notebooks/06_regimes.ipynb)). A fit on the whole history describes it; a second HMM, refitted every January on past data and filtered forward, gives the regime known at each close and is the one used to analyse the models.
+
+The regimes match known episodes (83% of 2008 in stress, the 2020 crash from 27 February, 80% of 2022 in the walk-forward fit) and last 41 to 69 days on average, against 10 to 17 for a Gaussian mixture that ignores persistence. By the regime known when each VaR was computed:
+
+| VaR 99%, 2012-2026, exceptions / expected | Calm | Normal | Stress |
+|---|---|---|---|
+| Filtered historical simulation | 24 / 22.0 | 10 / 9.2 | 4 / 7.0 |
+| Historical simulation | 24 / 22.0 | 14 / 9.2 | 17 / 7.0 |
+| Parametric (GJR) | 32 / 22.0 | 13 / 9.2 | 9 / 7.0 |
+
+Historical simulation fails when markets turn stressed (Kupiec p = 0.001 in stress), the normal parametric VaR fails in calm markets (p = 0.045), and filtered historical simulation keeps close to 1% in every regime. GJR-GARCH has the lowest volatility forecast loss on the book in normal and stress regimes. The yield-curve slope was left out of the features: it moves too slowly and turned a regime into the steep-curve years of the early 2010s.
+
 ## Power BI report
 
 Seven pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`](powerbi/): the semantic model in TMDL (56 measures) and the pages in PBIR, so every change to a measure or a visual is a reviewable diff. Report changes are listed in [CHANGELOG.md](CHANGELOG.md); the full report is also in [`docs/report.pdf`](docs/report.pdf).
@@ -111,7 +127,7 @@ Seven pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi
 
 ![Risk page](docs/images/report_risk.png)
 
-**Models.** Volatility forecasts against realised volatility for any series and model, the QLIKE of every model on every series, and Diebold-Mariano tests against HAR.
+**Models.** Volatility forecasts against realised volatility for any series and model, the QLIKE of every model on every series and by market regime, and Diebold-Mariano tests against HAR.
 
 ![Models page](docs/images/report_models.png)
 
@@ -119,7 +135,7 @@ Seven pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi
 
 ![Execution page](docs/images/report_execution.png)
 
-**Market.** Return, volatility, worst day and drawdown over the selected dates; indices rebased to 100 on a log scale, 22-day volatility and the euro AAA 2-year and 10-year yields.
+**Market.** Return, volatility, worst day and drawdown over the selected dates; indices rebased to 100 on a log scale, 22-day volatility, the euro AAA 2-year and 10-year yields, and the probability of each market regime at each close.
 
 ![Market page](docs/images/report_market.png)
 
@@ -149,6 +165,7 @@ docker compose up -d               # PostgreSQL 16 on 127.0.0.1:5432
 .venv/bin/python -m pipeline.backtest                     # exceptions, Kupiec, Christoffersen, traffic light
 .venv/bin/python -m pipeline.volume_models                # next-session volume forecasts of the ten stocks
 .venv/bin/python -m pipeline.costs                        # spreads and pre-trade costs
+.venv/bin/python -m pipeline.regimes                      # market regimes, exceptions and forecast errors by regime
 .venv/bin/python -m pipeline.publish                      # gold tables to data/gold/*.parquet
 .venv/bin/pytest                                           # tests (database tests skip without PostgreSQL)
 ```
