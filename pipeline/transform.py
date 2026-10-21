@@ -16,57 +16,60 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 
-from pipeline import db, quality, reference
+from pipeline import calendars, config, db, quality, raw, reference
 from pipeline.catalog import CATALOG, SOURCES, get
 
 log = logging.getLogger("transform")
 
-REPORTING_CALENDARS = ("XPAR", "XNYS")
 PRICE_LIKE = ("equity index", "commodity", "fx")
-
-
-def reporting_days(start: pd.Timestamp, end: pd.Timestamp) -> pd.DatetimeIndex:
-    """Days when at least one of the book's markets (Paris, New York) is open."""
-    days = pd.DatetimeIndex([])
-    for code in REPORTING_CALENDARS:
-        days = days.union(quality.sessions(code, start, end))
-    return days
+FACT_MARKET_COLUMNS = [
+    "date",
+    "instrument_id",
+    "level",
+    "index_100",
+    "daily_return",
+    "change_bp",
+    "is_filled",
+    "fill_reason",
+]
 
 
 def build_silver(raws: dict[str, pd.DataFrame | None]) -> pd.DataFrame:
-    """Align every series (except cross-checks) on the reporting calendar, carrying values forward."""
+    """Align every series (except cross-checks) on the reporting days, carrying values forward."""
     observed = {}
     for series in CATALOG:
-        raw = raws.get(series.source)
-        if series.role == "cross-check" or raw is None:
+        table = raws.get(series.source)
+        if series.role == "cross-check" or table is None:
             continue
-        values = quality.series_values(raw, series)
+        values = raw.series_values(table, series)
         if not values.empty:
             observed[series] = values
-    start = min(v.index.min() for v in observed.values())
-    end = max(v.index.max() for v in observed.values())
-    days = reporting_days(start, end)
+    first_day = min(values.index.min() for values in observed.values())
+    last_day = max(values.index.max() for values in observed.values())
+    days = calendars.reporting_days(first_day, last_day)
 
     frames = []
     for series, values in observed.items():
-        span = days[
-            (days >= values.index.min()) & (days <= values.index.max())
-        ]  # no fill past the last value
+        within_history = (days >= values.index.min()) & (
+            days <= values.index.max()
+        )  # nothing past the last value
+        span = days[within_history]
         aligned = values.reindex(span)
-        filled = aligned.isna()
-        open_days = quality.sessions(series.calendar or "weekdays", span.min(), span.max())
-        reason = np.where(span.isin(open_days), "missing_in_source", "market_closed")
+        is_filled = aligned.isna()
+        market_open = span.isin(calendars.sessions(series.calendar or "weekdays", span.min(), span.max()))
+        reason = np.where(market_open, "missing_in_source", "market_closed")
         frame = pd.DataFrame(
             {
                 "date": span,
                 "instrument_id": series.instrument,
                 "value": aligned.ffill().to_numpy(),
-                "is_filled": filled.to_numpy(),
-                "fill_reason": np.where(filled, reason, None),
+                "is_filled": is_filled.to_numpy(),
+                "fill_reason": np.where(is_filled, reason, None),
             }
         )
-        frames.append(frame.dropna(subset=["value"]))  # a leading gap has nothing to carry
-    return pd.concat(frames, ignore_index=True).sort_values(["date", "instrument_id"]).reset_index(drop=True)
+        frames.append(frame.dropna(subset=["value"]))  # a gap before the first value has nothing to carry
+    silver = pd.concat(frames, ignore_index=True)
+    return silver.sort_values(["date", "instrument_id"]).reset_index(drop=True)
 
 
 def build_dim_date(trading_days: pd.DatetimeIndex, as_of: date) -> pd.DataFrame:
@@ -78,10 +81,9 @@ def build_dim_date(trading_days: pd.DatetimeIndex, as_of: date) -> pd.DataFrame:
     index = pd.Series(np.cumsum(is_trading), index=days, dtype="Int64")
     index[(days < trading_days[0]) | (days > trading_days[-1])] = pd.NA
 
-    future = reporting_days(trading_days[-1], end)  # month end needs the next session, even after the data
-    sessions = trading_days.union(future)
-    next_session = pd.Series(sessions[1:].append(pd.DatetimeIndex([pd.NaT])), index=sessions)
-    month_end = sessions[((next_session.dt.month != sessions.month) & next_session.notna()).to_numpy()]
+    # A month ends on its last session, which for the current month may lie after the data.
+    sessions = trading_days.union(calendars.reporting_days(trading_days[-1], end))
+    month_ends = sessions.to_series().groupby(sessions.to_period("M")).max()
     return pd.DataFrame(
         {
             "date": days,
@@ -91,10 +93,10 @@ def build_dim_date(trading_days: pd.DatetimeIndex, as_of: date) -> pd.DataFrame:
             "month_name": days.strftime("%b"),
             "day_of_week": days.dayofweek + 1,
             "is_trading_day": is_trading,
-            "is_xpar_session": days.isin(quality.sessions("XPAR", start, end)),
-            "is_xnys_session": days.isin(quality.sessions("XNYS", start, end)),
+            "is_xpar_session": days.isin(calendars.sessions("XPAR", start, end)),
+            "is_xnys_session": days.isin(calendars.sessions("XNYS", start, end)),
             "trading_day_index": index.to_numpy(),
-            "is_month_end": is_trading & days.isin(month_end),
+            "is_month_end": is_trading & days.isin(month_ends),
         }
     )
 
@@ -103,19 +105,19 @@ def build_dim_instrument() -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
-                "instrument_id": s.instrument,
-                "name": s.name,
-                "asset_class": s.asset_class,
-                "currency": s.currency,
-                "unit": s.unit,
-                "role": s.role,
-                "source_id": s.source,
-                "source_key": s.key,
-                "calendar": s.calendar,
-                "licence": s.licence,
-                "publish_level": s.publish_level,
+                "instrument_id": series.instrument,
+                "name": series.name,
+                "asset_class": series.asset_class,
+                "currency": series.currency,
+                "unit": series.unit,
+                "role": series.role,
+                "source_id": series.source,
+                "source_key": series.key,
+                "calendar": series.calendar,
+                "licence": series.licence,
+                "publish_level": series.publish_level,
             }
-            for s in CATALOG
+            for series in CATALOG
         ]
     )
 
@@ -125,30 +127,20 @@ def build_fact_market(silver: pd.DataFrame) -> pd.DataFrame:
     frames = []
     for instrument, rows in silver.groupby("instrument_id", sort=False):
         series = get(instrument)
-        v = rows["value"]
-        nan = pd.Series(np.nan, index=rows.index)
+        values = rows["value"]
+        missing = pd.Series(np.nan, index=rows.index)
         price_like = series.asset_class in PRICE_LIKE
+        has_returns = price_like or series.asset_class == "volatility index"
+        is_rate = series.asset_class == "rates"
         frames.append(
             rows[["date", "instrument_id", "is_filled", "fill_reason"]].assign(
-                level=v if series.publish_level else nan,
-                index_100=v / v.iloc[0] * 100 if price_like else nan,
-                daily_return=v.pct_change()
-                if price_like or series.asset_class == "volatility index"
-                else nan,
-                change_bp=v.diff() * 100 if series.asset_class == "rates" else nan,
+                level=values if series.publish_level else missing,
+                index_100=values / values.iloc[0] * 100 if price_like else missing,
+                daily_return=values.pct_change() if has_returns else missing,
+                change_bp=values.diff() * 100 if is_rate else missing,
             )
         )
-    columns = [
-        "date",
-        "instrument_id",
-        "level",
-        "index_100",
-        "daily_return",
-        "change_bp",
-        "is_filled",
-        "fill_reason",
-    ]
-    return pd.concat(frames, ignore_index=True)[columns]
+    return pd.concat(frames, ignore_index=True)[FACT_MARKET_COLUMNS]
 
 
 def build_gold(silver: pd.DataFrame, as_of: date) -> dict[str, pd.DataFrame]:
@@ -167,13 +159,13 @@ def build_gold(silver: pd.DataFrame, as_of: date) -> dict[str, pd.DataFrame]:
 def main(argv: list[str] | None = None) -> int:
     now = datetime.now(UTC)
     parser = argparse.ArgumentParser(description="Build silver and gold tables from the latest raw files.")
-    parser.add_argument("--as-of", type=date.fromisoformat, default=now.astimezone(quality.PARIS).date())
-    parser.add_argument("--raw-dir", type=Path, default=quality.RAW_DIR)
+    parser.add_argument("--as-of", type=date.fromisoformat, default=now.astimezone(config.PARIS).date())
+    parser.add_argument("--raw-dir", type=Path, default=config.RAW_DIR)
     args = parser.parse_args(argv)
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(level=logging.INFO, format=config.LOG_FORMAT)
     load_dotenv()
 
-    raws = {source: quality.latest_raw(args.raw_dir, source)[0] for source in SOURCES}
+    raws = {source: raw.read_latest(args.raw_dir, source)[0] for source in SOURCES}
     fact, flags = quality.evaluate(raws, args.as_of, run_id="transform")
     messages = quality.gate(fact, flags, "critical")
     if messages:
@@ -189,11 +181,17 @@ def main(argv: list[str] | None = None) -> int:
         db.insert(conn, "silver", "market", silver)
         for table, frame in gold.items():
             db.insert(conn, "gold", table, frame)
+
+    first, last = f"{silver['date'].min():%Y-%m-%d}", f"{silver['date'].max():%Y-%m-%d}"
+    n_instruments, n_filled = silver["instrument_id"].nunique(), int(silver["is_filled"].sum())
     log.info(
         "silver.market: %d rows, %d instruments, %s to %s, %d filled values",
-        len(silver), silver["instrument_id"].nunique(), f"{silver['date'].min():%Y-%m-%d}",
-        f"{silver['date'].max():%Y-%m-%d}", silver["is_filled"].sum(),
-    )  # fmt: skip
+        len(silver),
+        n_instruments,
+        first,
+        last,
+        n_filled,
+    )
     for table, frame in gold.items():
         log.info("gold.%s: %d rows", table, len(frame))
     return 0

@@ -20,7 +20,7 @@ Conventions:
 
 - **Dates** are trading dates in the market's local time zone, stored without a time zone. `downloaded_at` is in UTC.
 - **Yahoo prices** are requested with `auto_adjust=False`. For price indices `close` equals `adj_close` on every row. `GC=F` is the front-month future: its series jumps when the contract rolls.
-- **Live bars:** a Yahoo bar dated today is kept only after the local close plus a buffer (Paris 18:00, New York 16:30 for the S&P 500 and 17:30 for gold, London 23:59 for EUR/USD).
+- **Live bars:** a Yahoo bar dated today is kept only after the local close plus a buffer (Paris 18:00, New York 16:30 for the S&P 500 and 17:30 for gold). Yahoo EUR/USD trades around the clock, so only bars up to the previous day are kept.
 - **ECB EUR/USD** is the reference rate set around 14:15 CET on TARGET business days, which match the XPAR calendar exactly since 2008. It is the rate used to convert USD positions.
 - **FRED** marks a day without a value with `"."`; such days are dropped at ingestion.
 - **Calendars** come from `exchange_calendars`. `US10Y2Y` follows the US bond market calendar, which that library does not provide, so it has no completeness check.
@@ -139,8 +139,8 @@ Key: (`date`, `position_id`). Notionals are constant (daily rebalancing). Book P
 | `date` | datetime64[ns] | Date of the flagged observation (empty for schema failures) |
 | `source`, `instrument`, `field` | string | Where the failure is |
 | `rule`, `severity` | string | Rule that failed and its severity |
-| `value` | float64 | Flagged value (empty for a missing day) |
-| `detail` | string | Human-readable reason |
+| `value` | float64 | Flagged value (empty for a missing day). In `gold.fact_dq_flags` it is kept only for series whose licence allows publishing levels (the ECB series) |
+| `detail` | string | Human-readable reason; it never repeats a level that may not be published |
 
 Both tables are written to `data/dq/` by the quality gate (a re-run with the same `run_id` replaces that run's rows), then loaded into `gold.fact_dq` and `gold.fact_dq_flags` and exported with the other gold tables.
 

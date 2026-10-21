@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
-from pipeline import db, publish
+from pipeline import config, db, publish
 
 
 @pytest.fixture
@@ -55,7 +55,7 @@ def test_sql_file_comments_may_contain_semicolons(scratch_schema, tmp_path, monk
     (tmp_path / "t.sql").write_text(
         f"-- a comment; with a semicolon\nCREATE TABLE {schema}.u (a INTEGER); -- trailing; note\n"
     )
-    monkeypatch.setattr(db, "SQL_DIR", tmp_path)
+    monkeypatch.setattr(config, "SQL_DIR", tmp_path)
     with engine.begin() as conn:
         db.run_sql_file(conn, "t.sql")
         assert db.row_count(conn, schema, "u") == 0
