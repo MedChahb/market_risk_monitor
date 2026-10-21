@@ -24,6 +24,8 @@ Conventions:
 - **ECB EUR/USD** is the reference rate set around 14:15 CET on TARGET business days, which match the XPAR calendar exactly since 2008. It is the rate used to convert USD positions.
 - **FRED** marks a day without a value with `"."`; such days are dropped at ingestion.
 - **Calendars** come from `exchange_calendars`. `US10Y2Y` follows the US bond market calendar, which that library does not provide, so it has no completeness check.
+- **Roles:** book risk factors (`CAC40`, `SX5E`, `SPX`, `GOLD`, `EURUSD`, `EUR10Y_AAA`), model inputs (`VIX`, `US10Y2Y`) and the cross-check `EURUSD_YAHOO`, used by the quality gate only.
+- **Publication:** gold tables carry raw levels only where the licence allows redistribution (the two ECB series). Other price series are published as an index rebased to 100 and daily returns.
 
 ## Tables
 
@@ -41,6 +43,55 @@ One file per source and download day (Paris date), rewritten in full by each run
 | `downloaded_at` | datetime64[us, UTC] | Time of the download |
 
 Key: (`date`, `instrument`, `field`).
+
+### Silver: `silver.market` (PostgreSQL)
+
+One value per instrument and reporting day, rebuilt from the latest raw files at every run, after the quality gate. Not exported.
+
+| Column | Type | Description |
+|---|---|---|
+| `date` | date | Reporting day: a session of Paris (XPAR) or New York (XNYS) |
+| `instrument_id` | text | Instrument id (cross-check series excluded) |
+| `value` | double | Level in the instrument's unit (close for Yahoo series) |
+| `is_filled` | boolean | True when the day had no observation and the previous value was carried forward |
+| `fill_reason` | text | `market_closed` (holiday of the instrument's market) or `missing_in_source` (open session, no data); empty when not filled |
+
+Key: (`date`, `instrument_id`). Values are carried forward only between an instrument's first and last observation; a filled day has a zero return and the move is captured on the next observed day.
+
+### Gold: star schema (PostgreSQL `gold`, exported to `data/gold/<table>.parquet`)
+
+The Parquet files are written from PostgreSQL, and the export fails if a file's row count differs from its table's. Dates are stored as Parquet `date32`.
+
+**`dim_date`**: every calendar day of the covered years, so the report can mark it as a date table.
+
+| Column | Type | Description |
+|---|---|---|
+| `date` | date | Key |
+| `year`, `quarter`, `month`, `month_name`, `day_of_week` | int / text | Calendar attributes (`day_of_week`: 1 = Monday) |
+| `is_trading_day` | boolean | Reporting day with data (Paris or New York open) |
+| `is_xpar_session`, `is_xnys_session` | boolean | Session of each exchange |
+| `trading_day_index` | int | Number of trading days up to and including this date (a weekend keeps Friday's value); empty outside the data range. Used for rolling windows such as the last 250 trading days |
+| `is_month_end` | boolean | Last trading day of the month |
+
+**`dim_instrument`**: one row per catalog series: `instrument_id` (key), `name`, `asset_class`, `currency`, `unit`, `role`, `source_id` (to `dim_source`), `source_key`, `calendar`, `licence`, `publish_level`.
+
+**`dim_source`**: `source_id` (key), `name`, `url`, `licence`.
+
+**`dim_model`**, **`dim_method`**, **`dim_regime`**: reference lists of the volatility models, VaR methods and market regimes used by later stages (`*_id`, `name`, `description`).
+
+**`fact_market`**: one row per instrument and reporting day.
+
+| Column | Type | Description |
+|---|---|---|
+| `date` | date | To `dim_date` |
+| `instrument_id` | text | To `dim_instrument` |
+| `level` | double | Level in the instrument's unit, only where `publish_level` is true |
+| `index_100` | double | Equities, gold and FX rebased to 100 on their first date |
+| `daily_return` | double | Simple daily return: equities, gold, FX and VIX |
+| `change_bp` | double | Daily change in basis points: rates |
+| `is_filled`, `fill_reason` | boolean, text | As in silver |
+
+Key: (`date`, `instrument_id`).
 
 ### `fact_dq`: one row per run, instrument and rule
 
@@ -66,7 +117,7 @@ Key: (`date`, `instrument`, `field`).
 | `value` | float64 | Flagged value (empty for a missing day) |
 | `detail` | string | Human-readable reason |
 
-Both tables are stored in `data/dq/` (not committed). A re-run with the same `run_id` replaces that run's rows.
+Both tables are written to `data/dq/` by the quality gate (a re-run with the same `run_id` replaces that run's rows), then loaded into `gold.fact_dq` and `gold.fact_dq_flags` and exported with the other gold tables.
 
 ## Quality rules
 
