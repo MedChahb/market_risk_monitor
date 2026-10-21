@@ -36,10 +36,15 @@ def test_export_keeps_row_counts_and_types(scratch_schema, tmp_path):
             "date": pd.to_datetime(["2026-10-19", "2026-10-20", "2026-10-21"]),
             "n": pd.array([1, None, 3], dtype="Int64"),
             "x": [1.5, 2.5, None],
+            "at": pd.to_datetime(["2026-10-22 21:00", None, None], utc=True),
         }
     )
     with engine.begin() as conn:
-        conn.execute(text(f"CREATE TABLE {schema}.t (date DATE NOT NULL, n INTEGER, x DOUBLE PRECISION)"))
+        conn.execute(
+            text(
+                f"CREATE TABLE {schema}.t (date DATE NOT NULL, n INTEGER, x DOUBLE PRECISION, at TIMESTAMPTZ)"
+            )
+        )
         db.insert(conn, schema, "t", frame)
     (tmp_path / "dropped_table.parquet").write_bytes(b"")
     with engine.connect() as conn:
@@ -47,6 +52,8 @@ def test_export_keeps_row_counts_and_types(scratch_schema, tmp_path):
     assert counts.to_dict("records") == [{"table": "t", "postgres_rows": 3, "parquet_rows": 3}]
     types = pq.read_schema(tmp_path / "t.parquet")
     assert str(types.field("date").type) == "date32[day]" and str(types.field("n").type) == "int64"
+    assert types.field("at").type.tz is None  # exported as plain UTC
+    assert pd.read_parquet(tmp_path / "t.parquet")["at"].iloc[0] == pd.Timestamp("2026-10-22 21:00")
     assert not (tmp_path / "dropped_table.parquet").exists()
 
 
