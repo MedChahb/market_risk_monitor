@@ -24,6 +24,11 @@ log = logging.getLogger("publish")
 TABLES = text(
     "SELECT table_name FROM information_schema.tables WHERE table_schema = :schema AND table_type = 'BASE TABLE'"
 )
+QUALITY_TABLES = {
+    "fact_dq": "fact_dq.parquet",
+    "fact_dq_flags": "dq_flags.parquet",
+    "fact_freshness": "dq_freshness.parquet",
+}
 TYPED_COLUMNS = text(
     "SELECT table_name, column_name, data_type FROM information_schema.columns "
     "WHERE table_schema = :schema AND data_type IN ('date', 'integer', 'bigint')"
@@ -36,17 +41,26 @@ def publishable_flags(flags: pd.DataFrame) -> pd.DataFrame:
     return flags.assign(value=flags["value"].where(flags["instrument"].isin(publishable), np.nan))
 
 
+def latest_run_id(fact_dq: pd.DataFrame) -> str | None:
+    """The run with the most recent run_at; runs recorded before run_at existed are never the latest."""
+    timed = fact_dq.dropna(subset=["run_at"])
+    return None if timed.empty else timed.loc[timed["run_at"].idxmax(), "run_id"]
+
+
 def load_quality_results(conn: Connection, dq_dir: Path) -> None:
     db.run_sql_file(conn, "quality.sql")
-    for table, file in [("fact_dq", "fact_dq.parquet"), ("fact_dq_flags", "dq_flags.parquet")]:
+    frames = {}
+    for table, file in QUALITY_TABLES.items():
         path = dq_dir / file
-        if not path.exists():
+        if path.exists():
+            frames[table] = pd.read_parquet(path)
+        else:
             log.warning("%s not found: gold.%s left empty", path, table)
-            continue
-        frame = pd.read_parquet(path)
+    latest = latest_run_id(frames["fact_dq"]) if "fact_dq" in frames else None
+    for table, frame in frames.items():
         if table == "fact_dq_flags":
             frame = publishable_flags(frame)
-        db.insert(conn, "gold", table, frame)
+        db.insert(conn, "gold", table, frame.assign(is_latest_run=frame["run_id"] == latest))
 
 
 def read_for_parquet(conn: Connection, schema: str, table: str, typed_columns: list) -> pd.DataFrame:

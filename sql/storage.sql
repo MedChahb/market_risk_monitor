@@ -78,8 +78,25 @@ CREATE TABLE gold.fact_market (
     index_100     DOUBLE PRECISION,  -- price-like series rebased to 100 on their first date
     daily_return  DOUBLE PRECISION,  -- simple return: equities, gold, FX, VIX
     change_bp     DOUBLE PRECISION,  -- daily change in basis points: rates
+    vol_22d       DOUBLE PRECISION,  -- annualised volatility of the last 22 observed daily returns
+    vol_22d_bp    DOUBLE PRECISION,  -- rates: annualised volatility of the last 22 daily changes, in bp
     is_filled     BOOLEAN NOT NULL,
     fill_reason   TEXT,
     PRIMARY KEY (date, instrument_id)
 );
 CREATE INDEX ON gold.fact_market (instrument_id);
+
+-- Correlation of daily moves (returns, or changes for rates) on days when both instruments moved.
+CREATE TABLE gold.fact_correlation (
+    period       TEXT    NOT NULL,  -- calendar year, 'Last 250 days' or 'Full history'
+    period_order INTEGER NOT NULL,  -- sort key for the report
+    instrument_a TEXT    NOT NULL REFERENCES gold.dim_instrument (instrument_id) ON DELETE CASCADE,
+    name_a       TEXT    NOT NULL,
+    instrument_b TEXT    NOT NULL REFERENCES gold.dim_instrument (instrument_id) ON DELETE CASCADE,
+    name_b       TEXT    NOT NULL,
+    correlation  DOUBLE PRECISION,  -- empty when the pair has fewer than 22 common days
+    n_days       INTEGER NOT NULL,  -- days when both instruments moved
+    PRIMARY KEY (period, instrument_a, instrument_b)
+);
+CREATE INDEX ON gold.fact_correlation (instrument_a);
+CREATE INDEX ON gold.fact_correlation (instrument_b);

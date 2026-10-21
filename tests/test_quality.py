@@ -137,3 +137,17 @@ def test_store_replaces_the_rows_of_the_same_run(tmp_path):
     quality.store(fact.assign(run_id="other-run"), path, "other-run")
     stored = pd.read_parquet(path)
     assert len(stored) == 2 * len(fact)
+
+
+def test_freshness_counts_the_sessions_a_series_is_late():
+    on_time = raw_table("CAC40", SESSIONS)  # ends on 2026-10-20, the session before the as-of date
+    late = raw_table("SX5E", SESSIONS[SESSIONS <= "2026-10-15"])
+    freshness = quality.build_freshness(
+        {"yahoo": pd.concat([on_time, late]), "ecb": None, "fred": None}, AS_OF
+    )
+    freshness = freshness.set_index("instrument")
+    assert freshness.loc["CAC40", "sessions_late"] == 0 and not freshness.loc["CAC40", "is_late"]
+    assert (
+        freshness.loc["SX5E", "sessions_late"] == 3 and freshness.loc["SX5E", "is_late"]
+    )  # 16, 19 and 20 October
+    assert pd.isna(freshness.loc["VIX", "sessions_late"]) and freshness.loc["VIX", "is_late"]  # no FRED file

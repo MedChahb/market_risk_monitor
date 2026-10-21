@@ -22,6 +22,8 @@ from pipeline.catalog import CATALOG, SOURCES, get
 log = logging.getLogger("transform")
 
 PRICE_LIKE = ("equity index", "commodity", "fx")
+VOL_WINDOW = 22  # observed trading days, about one month
+CORRELATION_WINDOW = 250  # reporting days, about one year
 FACT_MARKET_COLUMNS = [
     "date",
     "instrument_id",
@@ -29,6 +31,8 @@ FACT_MARKET_COLUMNS = [
     "index_100",
     "daily_return",
     "change_bp",
+    "vol_22d",
+    "vol_22d_bp",
     "is_filled",
     "fill_reason",
 ]
@@ -122,29 +126,77 @@ def build_dim_instrument() -> pd.DataFrame:
     )
 
 
+def rolling_volatility(moves: pd.Series, is_filled: pd.Series) -> pd.Series:
+    """Annualised volatility of the last 22 observed moves; a filled day keeps the previous value."""
+    observed = moves[~is_filled]
+    volatility = observed.rolling(VOL_WINDOW).std() * np.sqrt(252)
+    return volatility.reindex(moves.index).ffill()
+
+
 def build_fact_market(silver: pd.DataFrame) -> pd.DataFrame:
     """Daily market facts; raw levels only where the licence allows publishing them."""
     frames = []
     for instrument, rows in silver.groupby("instrument_id", sort=False):
         series = get(instrument)
-        values = rows["value"]
+        values, is_filled = rows["value"], rows["is_filled"]
         missing = pd.Series(np.nan, index=rows.index)
         price_like = series.asset_class in PRICE_LIKE
         has_returns = price_like or series.asset_class == "volatility index"
         is_rate = series.asset_class == "rates"
+        daily_return = values.pct_change() if has_returns else missing
+        change_bp = values.diff() * 100 if is_rate else missing
         frames.append(
             rows[["date", "instrument_id", "is_filled", "fill_reason"]].assign(
                 level=values if series.publish_level else missing,
                 index_100=values / values.iloc[0] * 100 if price_like else missing,
-                daily_return=values.pct_change() if has_returns else missing,
-                change_bp=values.diff() * 100 if is_rate else missing,
+                daily_return=daily_return,
+                change_bp=change_bp,
+                vol_22d=rolling_volatility(daily_return, is_filled) if has_returns else missing,
+                vol_22d_bp=rolling_volatility(change_bp, is_filled) if is_rate else missing,
             )
         )
     return pd.concat(frames, ignore_index=True)[FACT_MARKET_COLUMNS]
 
 
+def daily_moves(fact_market: pd.DataFrame) -> pd.DataFrame:
+    """One column per instrument: returns, or changes in bp for rates; empty on filled days."""
+    moves = fact_market["daily_return"].fillna(fact_market["change_bp"]).where(~fact_market["is_filled"])
+    return fact_market.assign(move=moves).pivot(index="date", columns="instrument_id", values="move")
+
+
+def build_fact_correlation(fact_market: pd.DataFrame) -> pd.DataFrame:
+    """Pairwise correlation of daily moves by calendar year, over the last 250 days and over the full history."""
+    moves = daily_moves(fact_market)
+    periods = [(str(year), moves.loc[str(year)]) for year in sorted(moves.index.year.unique())]
+    periods += [(f"Last {CORRELATION_WINDOW} days", moves.tail(CORRELATION_WINDOW)), ("Full history", moves)]
+    names = {series.instrument: series.name for series in CATALOG}
+    frames = []
+    for order, (period, window) in enumerate(periods):
+        moved = window.notna().astype(int)
+        correlation = window.corr(min_periods=VOL_WINDOW).rename_axis(
+            index="instrument_a", columns="instrument_b"
+        )
+        n_days = (moved.T @ moved).rename_axis(index="instrument_a", columns="instrument_b")
+        pairs = correlation.stack().rename("correlation").to_frame().join(n_days.stack().rename("n_days"))
+        frames.append(pairs.reset_index().assign(period=period, period_order=order))
+    table = pd.concat(frames, ignore_index=True)
+    table = table.assign(name_a=table["instrument_a"].map(names), name_b=table["instrument_b"].map(names))
+    columns = [
+        "period",
+        "period_order",
+        "instrument_a",
+        "name_a",
+        "instrument_b",
+        "name_b",
+        "correlation",
+        "n_days",
+    ]
+    return table[columns]
+
+
 def build_gold(silver: pd.DataFrame, as_of: date) -> dict[str, pd.DataFrame]:
     trading_days = pd.DatetimeIndex(silver["date"].unique()).sort_values()
+    fact_market = build_fact_market(silver)
     return {
         "dim_source": pd.DataFrame(reference.DATA_SOURCES),
         "dim_instrument": build_dim_instrument(),
@@ -152,7 +204,8 @@ def build_gold(silver: pd.DataFrame, as_of: date) -> dict[str, pd.DataFrame]:
         "dim_model": pd.DataFrame(reference.MODELS),
         "dim_method": pd.DataFrame(reference.METHODS),
         "dim_regime": pd.DataFrame(reference.REGIMES),
-        "fact_market": build_fact_market(silver),
+        "fact_market": fact_market,
+        "fact_correlation": build_fact_correlation(fact_market),
     }
 
 

@@ -1,7 +1,8 @@
 """Data quality gate for the raw tables.
 
 Runs the rules on the latest raw file of each source and stores the results in data/dq/:
-fact_dq (one row per run, instrument and rule) and dq_flags (one row per flagged observation).
+fact_dq (one row per run, instrument and rule), dq_flags (one row per flagged observation) and
+dq_freshness (one row per run and series: last date against the last expected session).
 Exits with code 1 when a rule of the blocking severity fails, so bad data never reaches silver.
 """
 
@@ -41,6 +42,7 @@ RULES = {
 FLAG_COLUMNS = ["date", "instrument", "field", "value", "detail"]
 FACT_DQ_COLUMNS = ["run_id", "date", "source", "instrument", "rule", "severity", "passed", "n_failed"]
 DQ_FLAGS_COLUMNS = ["run_id", "date", "source", "instrument", "field", "rule", "severity", "value", "detail"]
+FRESHNESS_COLUMNS = ["source", "instrument", "last_date", "expected_date", "sessions_late", "is_late"]
 
 
 def is_utc(column: pd.Series) -> bool:
@@ -258,6 +260,33 @@ def gate(fact: pd.DataFrame, flags: pd.DataFrame, fail_on: str) -> list[str]:
     return messages
 
 
+def build_freshness(raws: dict[str, pd.DataFrame | None], as_of: date) -> pd.DataFrame:
+    """Each series' last observation against the last session a run can expect, in sessions late."""
+    rows = []
+    for series in CATALOG:
+        table = raws.get(series.source)
+        values = raw.series_values(table, series) if table is not None else pd.Series(dtype=float)
+        expected = calendars.previous_session(series.calendar, as_of)
+        last = values.index.max() if not values.empty else pd.NaT
+        sessions_late = pd.NA
+        if pd.notna(last):
+            sessions_late = len(
+                calendars.sessions(series.calendar or "weekdays", last + pd.Timedelta(days=1), expected)
+            )
+        rows.append(
+            {
+                "source": series.source,
+                "instrument": series.instrument,
+                "last_date": last,
+                "expected_date": expected,
+                "sessions_late": sessions_late,
+            }
+        )
+    freshness = pd.DataFrame(rows).astype({"last_date": "datetime64[ns]", "sessions_late": "Int64"})
+    is_late = freshness["sessions_late"].isna() | (freshness["sessions_late"] > 0)
+    return freshness.assign(is_late=is_late.astype(bool))[FRESHNESS_COLUMNS]
+
+
 def store(table: pd.DataFrame, path: Path, run_id: str) -> None:
     """Append a run to a results table; re-running the same run id replaces its rows."""
     if path.exists():
@@ -282,8 +311,11 @@ def main(argv: list[str] | None = None) -> int:
         raws[source], path = raw.read_latest(args.raw_dir, source)
         log.info("%s: %s", source, path or "no raw file")
     fact, flags = evaluate(raws, args.as_of, args.run_id)
-    store(fact, args.dq_dir / "fact_dq.parquet", args.run_id)
+    run = {"run_id": args.run_id, "run_at": pd.Timestamp(now)}  # run_at orders runs for the report
+    store(fact.assign(**run), args.dq_dir / "fact_dq.parquet", args.run_id)
     store(flags, args.dq_dir / "dq_flags.parquet", args.run_id)
+    freshness = build_freshness(raws, args.as_of).assign(**run, date=pd.Timestamp(args.as_of).as_unit("ns"))
+    store(freshness, args.dq_dir / "dq_freshness.parquet", args.run_id)
 
     for source, results in fact.groupby("source", sort=False):
         failed = results[~results["passed"]]

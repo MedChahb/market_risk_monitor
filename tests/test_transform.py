@@ -98,3 +98,30 @@ def test_main_refuses_raw_data_with_a_critical_failure(tmp_path, monkeypatch):
     pd.concat([table, table.iloc[[0]]]).to_parquet(tmp_path / "yahoo" / "2026-05-11.parquet")
     monkeypatch.setattr(db, "engine", lambda: pytest.fail("the database must not be touched"))
     assert transform.main(["--raw-dir", str(tmp_path), "--as-of", "2026-05-11"]) == 1
+
+
+def test_volatility_uses_the_last_22_observed_returns_and_holds_on_filled_days():
+    xpar = calendars.sessions("XPAR", pd.Timestamp("2026-01-02"), pd.Timestamp("2026-05-08"))
+    xnys = calendars.sessions("XNYS", pd.Timestamp("2026-01-02"), pd.Timestamp("2026-05-08"))
+    prices = 100 * np.cumprod(1 + np.random.default_rng(1).normal(0, 0.01, len(xpar)))
+    silver = silver_for(raw_table("CAC40", xpar, prices), raw_table("SPX", xnys))
+    cac = transform.build_fact_market(silver).set_index("date").query("instrument_id == 'CAC40'")
+    observed = cac.loc[~cac["is_filled"], "daily_return"]
+    expected = observed.tail(22).std() * np.sqrt(252)
+    assert cac["vol_22d"].iloc[-1] == pytest.approx(expected)
+    assert (
+        cac.loc[LABOUR_DAY, "is_filled"]
+        and cac.loc[LABOUR_DAY, "vol_22d"] == cac.loc["2026-04-30", "vol_22d"]
+    )
+
+
+def test_correlation_table_covers_every_pair_and_period():
+    xpar = calendars.sessions("XPAR", pd.Timestamp("2025-11-03"), pd.Timestamp("2026-03-31"))
+    prices = 100 * np.cumprod(1 + np.random.default_rng(2).normal(0, 0.01, len(xpar)))
+    silver = silver_for(raw_table("CAC40", xpar, prices), raw_table("SX5E", xpar, prices * 0.7))
+    table = transform.build_fact_correlation(transform.build_fact_market(silver))
+    assert set(table["period"]) == {"2025", "2026", "Last 250 days", "Full history"}
+    full = table[table["period"] == "Full history"].set_index(["instrument_a", "instrument_b"])
+    assert len(full) == 4 and full.loc[("CAC40", "SX5E"), "correlation"] == pytest.approx(1.0)
+    assert full.loc[("CAC40", "SX5E"), "n_days"] == len(xpar) - 1  # the first day has no return
+    assert full.loc[("SX5E", "CAC40"), "name_a"] == "Euro Stoxx 50"
