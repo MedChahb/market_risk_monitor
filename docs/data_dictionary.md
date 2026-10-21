@@ -93,6 +93,31 @@ The Parquet files are written from PostgreSQL, and the export fails if a file's 
 
 Key: (`date`, `instrument_id`).
 
+**`dim_position`**: the fictional 10 M€ book (defined in [`pipeline/book.py`](../pipeline/book.py)).
+
+| `position_id` | Name | Notional (EUR) | Priced from | Currency | Kind |
+|---|---|---|---|---|---|
+| `CAC40` | CAC 40 | 2,000,000 | `CAC40` | EUR | equity |
+| `SX5E` | Euro Stoxx 50 | 2,000,000 | `SX5E` | EUR | equity |
+| `SPX` | S&P 500 | 2,000,000 | `SPX` | USD | equity |
+| `GOLD` | Gold | 1,000,000 | `GOLD` | USD | commodity |
+| `EUR_ZC10Y` | 10-year euro zero-coupon bond | 2,000,000 | `EUR10Y_AAA` | EUR | bond |
+| `USD_CASH` | USD cash | 1,000,000 | none | USD | cash |
+
+**`fact_pnl`**: daily hypothetical P&L, one row per day and position, on days when every position can be valued.
+
+| Column | Type | Description |
+|---|---|---|
+| `date` | date | To `dim_date` |
+| `position_id` | text | To `dim_position` |
+| `return_local` | double | Return in the position's currency: price return; for the bond, the change of `100 / (1 + y)^10` with the AAA 10-year yield `y` at constant maturity; 0 for cash |
+| `return_fx` | double | USD/EUR return (the inverse of the ECB EUR/USD rate) for USD positions, 0 otherwise |
+| `return_eur` | double | `(1 + return_local) × (1 + return_fx) − 1` |
+| `pnl_eur` | double | `notional_eur × return_eur` |
+| `pnl_fx_eur` | double | Part of the P&L due to the dollar: `notional_eur × (1 + return_local) × return_fx` |
+
+Key: (`date`, `position_id`). Notionals are constant (daily rebalancing). Book P&L = sum of `pnl_eur` per day; book return = book P&L / 10 M€. The P&L excludes trading, fees, carry and roll-down.
+
 ### `fact_dq`: one row per run, instrument and rule
 
 | Column | Type | Description |
