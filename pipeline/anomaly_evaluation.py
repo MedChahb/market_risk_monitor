@@ -112,20 +112,17 @@ def evaluate(clean: dict[str, pd.Series], seed: int) -> tuple[pd.DataFrame, pd.D
     forest = IsolationForest(n_estimators=300, random_state=0).fit(real_features.to_numpy())
     real_scores = forest.score_samples(real_features.to_numpy())
     layers = {
-        "Rules (stale values, missing sessions)": (rule_flags(data), rule_flags(clean)),
-        "Robust z-score (bad ticks, level shifts)": (tick_flags(data), tick_flags(clean)),
+        "Rules: stale, missing sessions": (rule_flags(data), rule_flags(clean)),
+        "Robust z-score": (tick_flags(data), tick_flags(clean)),
     }
     for budget in FOREST_BUDGETS:
         threshold = np.quantile(real_scores, budget)
-        layers[f"Isolation Forest, {budget:.1%} of real days flagged"] = (
+        layers[f"Isolation Forest, {budget * 100:g}% budget"] = (
             forest_flags(forest, threshold, data),
             forest_flags(forest, threshold, clean),
         )
-    rules, ticks = (
-        layers["Rules (stale values, missing sessions)"],
-        layers["Robust z-score (bad ticks, level shifts)"],
-    )
-    layers["Production: rules and robust z-score"] = (rules[0] | ticks[0], rules[1] | ticks[1])
+    rules, ticks = layers["Rules: stale, missing sessions"], layers["Robust z-score"]
+    layers["Production: rules + z-score"] = (rules[0] | ticks[0], rules[1] | ticks[1])
 
     table = pd.DataFrame(
         [
