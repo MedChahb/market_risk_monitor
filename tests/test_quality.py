@@ -31,6 +31,7 @@ def test_clean_series_passes_every_rule():
         "missing_trading_day",
         "stale_value",
         "large_move",
+        "suspect_tick",
     }
     assert set(cac["rule"]) == expected
     assert cac["passed"].all()
@@ -110,6 +111,16 @@ def test_zero_volume_is_a_warning_for_stocks_only():
     fact, flags = run(yahoo=yahoo)
     assert n_failed(fact, "TTE", "zero_volume") == 1
     assert fact[(fact["instrument"] == "CAC40") & (fact["rule"] == "zero_volume")].empty
+    assert quality.gate(fact, flags, "critical") == []
+
+
+def test_a_reverted_spike_is_a_suspect_tick_warning():
+    sessions = calendars.sessions("XPAR", pd.Timestamp("2025-06-02"), pd.Timestamp("2026-10-20"))
+    values = 100 * np.exp(np.cumsum(np.random.default_rng(0).normal(0, 0.01, len(sessions))))
+    values[200] *= 1.2
+    fact, flags = run(yahoo=raw_table("CAC40", sessions, values))
+    assert n_failed(fact, "CAC40", "suspect_tick") == 1
+    assert flags.loc[flags["rule"] == "suspect_tick", "date"].iloc[0] == sessions[200]
     assert quality.gate(fact, flags, "critical") == []
 
 

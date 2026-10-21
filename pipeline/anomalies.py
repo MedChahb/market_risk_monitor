@@ -32,8 +32,12 @@ def price_series(yahoo: pd.DataFrame) -> dict[str, pd.Series]:
 
 
 def log_returns(closes: dict[str, pd.Series]) -> pd.DataFrame:
-    """One column per series, each return measured from the series' previous observed close."""
-    return pd.DataFrame({instrument: np.log(values).diff() for instrument, values in closes.items()})
+    """One column per series, each return measured from the series' previous observed close.
+
+    Non-positive prices are left out: the quality gate reports them as a critical failure."""
+    return pd.DataFrame(
+        {instrument: np.log(values.where(values > 0)).diff() for instrument, values in closes.items()}
+    )
 
 
 def robust_z(returns: pd.Series) -> pd.Series:
@@ -60,7 +64,7 @@ def detect_ticks(closes: dict[str, pd.Series]) -> pd.DataFrame:
     returns = log_returns(closes)
     z = returns.apply(robust_z)
     reverts = (returns + next_observed(returns)).abs() <= returns.abs() * REVERSAL_SHARE
-    isolated = market_median(z).abs() < MARKET_Z
+    isolated = ~(market_median(z).abs() >= MARKET_Z)  # also true when no other series traded that day
     kinds = {
         "bad tick": (z.abs() >= REVERSAL_Z) & reverts & isolated,
         "level shift": (z.abs() >= LEVEL_SHIFT_Z) & ~reverts,
