@@ -1,0 +1,40 @@
+# CPU-only PyTorch: the default Linux wheel pulls several GB of CUDA libraries.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Data and ingestion
+pandas==3.0.6
+numpy==2.5.4
+pyarrow==25.0.1
+yfinance==1.7.0
+requests==2.34.2
+fredapi==0.5.2
+python-dotenv==1.2.4
+
+# Storage
+sqlalchemy==2.1.5
+psycopg[binary]==3.3.6
+
+# Data quality and calendars
+pandera==0.34.1
+exchange_calendars==4.13.2
+
+# Models and statistics
+arch==8.0.0
+statsmodels==0.15.0
+scipy==1.18.1
+scikit-learn==1.9.1
+# CPU-only build of xgboost (same `import xgboost`, without the 300 MB NCCL GPU library)
+xgboost-cpu==3.4.1
+torch==2.14.1+cpu
+hmmlearn==0.3.3
+
+# Tracking
+mlflow==3.17.1
+
+# Plotting and notebooks
+matplotlib==3.11.2
+ipykernel==7.4.0
+
+# Tests and lint
+pytest==9.1.1
+ruff==0.17.1
