@@ -93,7 +93,9 @@ def sessions(code: str, start: pd.Timestamp, end: pd.Timestamp) -> pd.DatetimeIn
     if code == "weekdays":
         return pd.bdate_range(start, end)
     cal = exchange_calendar(code)
-    return cal.sessions_in_range(max(pd.Timestamp(start), cal.first_session), end)
+    return cal.sessions_in_range(
+        max(pd.Timestamp(start), cal.first_session), min(pd.Timestamp(end), cal.last_session)
+    )
 
 
 def previous_session(code: str | None, as_of: date) -> pd.Timestamp:
