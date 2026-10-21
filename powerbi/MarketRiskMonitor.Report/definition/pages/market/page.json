@@ -17,6 +17,11 @@
       "type": "NoFilter"
     },
     {
+      "source": "snapshot",
+      "target": "regime_chart",
+      "type": "NoFilter"
+    },
+    {
       "source": "rates_chart",
       "target": "snapshot",
       "type": "NoFilter"
@@ -29,6 +34,11 @@
     {
       "source": "rates_chart",
       "target": "volatility_chart",
+      "type": "NoFilter"
+    },
+    {
+      "source": "rates_chart",
+      "target": "regime_chart",
       "type": "NoFilter"
     },
     {
@@ -47,6 +57,11 @@
       "type": "NoFilter"
     },
     {
+      "source": "index_chart",
+      "target": "regime_chart",
+      "type": "NoFilter"
+    },
+    {
       "source": "volatility_chart",
       "target": "snapshot",
       "type": "NoFilter"
@@ -59,6 +74,31 @@
     {
       "source": "volatility_chart",
       "target": "index_chart",
+      "type": "NoFilter"
+    },
+    {
+      "source": "volatility_chart",
+      "target": "regime_chart",
+      "type": "NoFilter"
+    },
+    {
+      "source": "regime_chart",
+      "target": "snapshot",
+      "type": "NoFilter"
+    },
+    {
+      "source": "regime_chart",
+      "target": "rates_chart",
+      "type": "NoFilter"
+    },
+    {
+      "source": "regime_chart",
+      "target": "index_chart",
+      "type": "NoFilter"
+    },
+    {
+      "source": "regime_chart",
+      "target": "volatility_chart",
       "type": "NoFilter"
     }
   ]

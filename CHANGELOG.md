@@ -4,6 +4,7 @@ Changes to the Power BI report in `powerbi/`, newest first.
 
 ## Unreleased
 
+- 2026-10-21: Market regimes. The Market page shows the probability of the calm, normal and stress regimes at each close (walk-forward HMM) below shorter index and volatility charts; the Models page adds the QLIKE of each model by regime for the selected series; 5 new measures and the regime tables; the Read me page defines the regimes.
 - 2026-10-20: Execution page: next-session volume forecast against actual volume for ten CAC 40 stocks, the volume models' losses and Diebold-Mariano tests against the 20-day ADV, the cost of an order chosen with an order-size slider, the next session's cost curve and the cost history; 13 new measures, an order-size what-if parameter and four gold tables. The stocks stay out of the Market page and the volume models out of the Models page; the quality grid takes the full width for twenty series and the pass rate moves to the key figures; the Read me page lists the definitions on the right.
 
 ## v1.0 (2026-10-19)

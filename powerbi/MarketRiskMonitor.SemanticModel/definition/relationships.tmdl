@@ -82,6 +82,26 @@ relationship 06b3ff52-1ce1-5933-93c6-d0a8fbccf748
 	fromColumn: fact_forecast_evaluation.model_id
 	toColumn: dim_model.model_id
 
+relationship bc0036fd-0a26-59ac-8f17-9930b66b6e81
+	fromColumn: fact_regime.date
+	toColumn: dim_date.Date
+
+relationship 538adb42-5aef-58cb-93af-2bb6f7a4b509
+	fromColumn: fact_regime.regime_id
+	toColumn: dim_regime.regime_id
+
+relationship 4a4ea11b-9620-50b7-b887-5d4063809211
+	fromColumn: fact_forecast_regime.series_id
+	toColumn: dim_series.series_id
+
+relationship 8eaa5c84-4c9e-5773-96bf-9b84db03f709
+	fromColumn: fact_forecast_regime.model_id
+	toColumn: dim_model.model_id
+
+relationship e40cd38d-ca42-5d86-bcb7-ebfd7abfef05
+	fromColumn: fact_forecast_regime.regime_id
+	toColumn: dim_regime.regime_id
+
 relationship a9daa7a2-d978-5456-9428-317a310573f2
 	fromColumn: fact_volume_forecast.date
 	toColumn: dim_date.Date
