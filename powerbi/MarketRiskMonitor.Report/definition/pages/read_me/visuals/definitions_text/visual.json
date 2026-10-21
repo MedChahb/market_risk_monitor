@@ -155,6 +155,17 @@
                     }
                   }
                 ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Suspect tick: a move extreme for its series (robust z-score) that reverts the next day while other assets stay quiet, or larger than any real move.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
               }
             ]
           }

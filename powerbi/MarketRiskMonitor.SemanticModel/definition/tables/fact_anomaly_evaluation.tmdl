@@ -1,0 +1,121 @@
+table fact_anomaly_evaluation
+	lineageTag: 3f066a51-78e3-5799-8e2b-dae0d9174f0c
+
+	column layer_order
+		dataType: int64
+		isHidden
+		lineageTag: 2849f955-b98a-5b3d-b63a-8d0ed7961854
+		summarizeBy: none
+		sourceColumn: layer_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Detector Layer'
+		dataType: string
+		lineageTag: c0e98bd5-c438-5aae-963a-a5106813e256
+		summarizeBy: none
+		sourceColumn: layer
+		sortByColumn: layer_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column Alarms
+		dataType: int64
+		formatString: #,##0
+		lineageTag: fff8d1a6-d10a-51ba-a89f-f6876af38945
+		summarizeBy: none
+		sourceColumn: n_flags
+
+		annotation SummarizationSetBy = Automatic
+
+	column Precision
+		dataType: double
+		formatString: 0%
+		lineageTag: 31bc1b14-a49d-50e7-b444-ee430df81bad
+		summarizeBy: none
+		sourceColumn: precision
+
+		annotation SummarizationSetBy = Automatic
+
+	column Spike
+		dataType: double
+		formatString: 0%
+		lineageTag: 89ae122c-5450-57d9-ad23-16b32dc310ec
+		summarizeBy: none
+		sourceColumn: recall_spike
+
+		annotation SummarizationSetBy = Automatic
+
+	column Frozen
+		dataType: double
+		formatString: 0%
+		lineageTag: db5ff751-5646-5be0-95a4-36c8976891b5
+		summarizeBy: none
+		sourceColumn: recall_frozen
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Decimal ×10'
+		dataType: double
+		formatString: 0%
+		lineageTag: 825e6fbf-ca62-5fa8-abf0-f5358f807aed
+		summarizeBy: none
+		sourceColumn: recall_decimal_shift
+
+		annotation SummarizationSetBy = Automatic
+
+	column Split
+		dataType: double
+		formatString: 0%
+		lineageTag: 465ea448-286a-5935-aee6-538f7b534225
+		summarizeBy: none
+		sourceColumn: recall_split
+
+		annotation SummarizationSetBy = Automatic
+
+	column Missing
+		dataType: double
+		formatString: 0%
+		lineageTag: f44fb423-a62c-575f-a2a3-2ca14f84f402
+		summarizeBy: none
+		sourceColumn: recall_missing_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Roll Jump'
+		dataType: double
+		formatString: 0%
+		lineageTag: 647174ca-83c6-5739-8da7-cc7fe2c73b9d
+		summarizeBy: none
+		sourceColumn: recall_roll_jump
+
+		annotation SummarizationSetBy = Automatic
+
+	column n_per_type
+		dataType: int64
+		isHidden
+		lineageTag: b07990c8-6fc9-5a09-bccf-85b85f6b28a3
+		summarizeBy: none
+		sourceColumn: n_per_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column seed
+		dataType: int64
+		isHidden
+		lineageTag: 2ba88aa9-cdd2-52c1-b97e-b7850b11acae
+		summarizeBy: none
+		sourceColumn: seed
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_anomaly_evaluation = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_anomaly_evaluation.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"layer_order", Int64.Type}, {"layer", type text}, {"n_flags", Int64.Type}, {"precision", type number}, {"recall_spike", type number}, {"recall_frozen", type number}, {"recall_decimal_shift", type number}, {"recall_split", type number}, {"recall_missing_days", type number}, {"recall_roll_jump", type number}, {"n_per_type", Int64.Type}, {"seed", Int64.Type}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

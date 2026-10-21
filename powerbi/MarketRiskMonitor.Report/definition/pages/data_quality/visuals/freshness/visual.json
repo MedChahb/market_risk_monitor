@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
   "name": "freshness",
   "position": {
-    "x": 936,
+    "x": 824,
     "y": 688,
-    "z": 5000,
-    "width": 520,
+    "z": 4000,
+    "width": 420,
     "height": 360,
-    "tabOrder": 5000
+    "tabOrder": 4000
   },
   "visual": {
     "visualType": "tableEx",
@@ -106,7 +106,31 @@
           }
         }
       ],
+      "columnHeaders": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "10.0D"
+                }
+              }
+            }
+          }
+        }
+      ],
       "values": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "10.0D"
+                }
+              }
+            }
+          }
+        },
         {
           "properties": {
             "backColor": {
