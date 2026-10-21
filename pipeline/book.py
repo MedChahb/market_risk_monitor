@@ -10,6 +10,7 @@ import logging
 import sys
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -44,7 +45,8 @@ PNL_COLUMNS = ["date", "position_id", "return_local", "return_fx", "return_eur",
 
 
 def zero_coupon_price(yield_pct: pd.Series | float, maturity: float = BOND_MATURITY) -> pd.Series | float:
-    return 100 / (1 + yield_pct / 100) ** maturity
+    """Price of a zero-coupon paying 100; the ECB AAA spot rate is continuously compounded."""
+    return 100 * np.exp(-yield_pct / 100 * maturity)
 
 
 def local_return(levels: pd.DataFrame, position: Position) -> pd.Series:

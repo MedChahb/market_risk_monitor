@@ -110,7 +110,7 @@ Key: (`date`, `instrument_id`).
 |---|---|---|
 | `date` | date | To `dim_date` |
 | `position_id` | text | To `dim_position` |
-| `return_local` | double | Return in the position's currency: price return; for the bond, the change of `100 / (1 + y)^10` with the AAA 10-year yield `y` at constant maturity; 0 for cash |
+| `return_local` | double | Return in the position's currency: price return; for the bond, the change of `100 × exp(−y × 10)` with the AAA 10-year spot yield `y`, continuously compounded as the ECB publishes it, at constant maturity; 0 for cash |
 | `return_fx` | double | USD/EUR return (the inverse of the ECB EUR/USD rate) for USD positions, 0 otherwise |
 | `return_eur` | double | `(1 + return_local) × (1 + return_fx) − 1` |
 | `pnl_eur` | double | `notional_eur × return_eur` |
