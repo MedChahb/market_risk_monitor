@@ -1,0 +1,31 @@
+// Saturday run: champion and challenger for the volatility model of the parametric VaR. A promotion is
+// applied at once: the VaR, its backtest and the published tables are rebuilt with the new champion.
+pipeline {
+    agent any
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        timeout(time: 30, unit: 'MINUTES')
+    }
+    triggers { cron('H 9 * * 6') }
+    environment {
+        POSTGRES_PASSWORD = credentials('postgres-password')
+        MLFLOW_DISABLE_AGENT_HINT = '1'
+    }
+    stages {
+        stage('Promotion') {
+            steps { script { env.STAGE_REACHED = env.STAGE_NAME }; sh 'python -m pipeline.promotion' }
+        }
+        stage('VaR') {
+            steps {
+                script { env.STAGE_REACHED = env.STAGE_NAME }
+                sh 'python -m pipeline.var && python -m pipeline.backtest && python -m pipeline.publish'
+            }
+        }
+    }
+    post {
+        always {
+            sh "python -m pipeline.monitor --job retrain --status ${currentBuild.currentResult} --started-ms ${currentBuild.startTimeInMillis} --stage '${env.STAGE_REACHED}'"
+        }
+    }
+}
