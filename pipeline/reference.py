@@ -68,12 +68,12 @@ METHODS = [
     {
         "method_id": "param_champion",
         "name": "Parametric (champion)",
-        "description": "Normal quantile, champion model",
+        "description": "Normal quantile, GJR-GARCH volatility (the volatility champion)",
     },
     {
         "method_id": "fhs",
         "name": "Filtered historical simulation",
-        "description": "500 days of standardised returns",
+        "description": "500 days of returns standardised by GJR-GARCH volatility",
     },
 ]
 

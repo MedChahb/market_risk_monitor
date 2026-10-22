@@ -118,9 +118,11 @@ def position_ranges(daily_range: pd.DataFrame, dates: pd.DatetimeIndex) -> dict[
     }
 
 
-def test_months(dates: pd.DatetimeIndex) -> list[tuple[pd.Timestamp, pd.DatetimeIndex]]:
-    """(first day, days) of each month of the test period, in order."""
-    test = dates[dates >= TEST_START]
+def test_months(
+    dates: pd.DatetimeIndex, start: pd.Timestamp = TEST_START
+) -> list[tuple[pd.Timestamp, pd.DatetimeIndex]]:
+    """(first day, days) of each month from start, in order: the monthly refit points."""
+    test = dates[dates >= start]
     by_month = test.groupby(test.to_period("M"))
     return [(by_month[month][0], pd.DatetimeIndex(by_month[month])) for month in sorted(by_month)]
 
@@ -133,9 +135,9 @@ def ewma_variance(returns: pd.Series) -> pd.Series:
     return (returns**2).ewm(alpha=1 - EWMA_DECAY, adjust=False).mean()
 
 
-def garch_forecasts(returns: pd.Series, months: list, asymmetric: bool) -> pd.Series:
+def garch_forecasts(returns: pd.Series, months: list, asymmetric: bool, horizon: int = HORIZON) -> pd.Series:
     """GARCH(1,1), or GJR-GARCH when asymmetric (a fall raises volatility more than a rise), with
-    Student-t errors, refitted monthly; mean of the 1- to 5-day variance forecasts."""
+    Student-t errors, refitted monthly; mean of the 1- to horizon-day variance forecasts."""
     order = 1 if asymmetric else 0
     model = arch_model(returns, mean="Zero", vol="GARCH", p=1, o=order, q=1, dist="t", rescale=False)
     forecasts = []
@@ -143,7 +145,7 @@ def garch_forecasts(returns: pd.Series, months: list, asymmetric: bool) -> pd.Se
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")  # convergence notes on a few refits; checked through the losses
             result = model.fit(last_obs=month_start, disp="off")
-        variance = result.forecast(horizon=HORIZON, start=days[0], reindex=False).variance
+        variance = result.forecast(horizon=horizon, start=days[0], reindex=False).variance
         forecasts.append(variance.loc[days].mean(axis=1))
     return pd.concat(forecasts)
 
