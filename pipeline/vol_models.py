@@ -309,43 +309,59 @@ def forecast_series(
     return pd.concat(frames, ignore_index=True)[FORECAST_COLUMNS]
 
 
+def evaluation_rows(series_id: str, wide: pd.DataFrame, realised: pd.Series) -> list[dict]:
+    """Mean QLIKE and squared error of each model on the given dates, with Diebold-Mariano against HAR."""
+    rows = []
+    periods = {f"{wide.index[0].year}-{wide.index[-1].year}": None} | {
+        str(year): year for year in STRESS_YEARS
+    }
+    for period, year in periods.items():
+        in_period = wide.index.year == year if year else np.ones(len(wide), dtype=bool)
+        if not in_period.any():
+            continue
+        truth = realised[in_period]
+        losses = {model: evaluation.qlike(truth, wide.loc[in_period, model]) for model in wide.columns}
+        for model in wide.columns:
+            statistic, p_value = (
+                evaluation.diebold_mariano(losses[model], losses[BASELINE], HORIZON)
+                if model != BASELINE and BASELINE in losses
+                else (np.nan, np.nan)
+            )
+            rows.append(
+                {
+                    "series_id": series_id,
+                    "period": period,
+                    "model_id": model,
+                    "n_days": len(truth),
+                    "qlike": losses[model].mean(),
+                    "mse": evaluation.squared_error(truth, wide.loc[in_period, model]).mean(),
+                    "dm_stat_vs_har": statistic,
+                    "dm_p_vs_har": p_value,
+                }
+            )
+    return rows
+
+
 def results_table(forecasts: pd.DataFrame) -> pd.DataFrame:
     """Mean QLIKE and squared error per series, period and model, with Diebold-Mariano against HAR.
 
-    Models are compared on the dates where all of them have a forecast and the realised variance is known.
+    Models that are up to date are compared on the dates where all of them have a forecast and the
+    realised variance is known. A model whose forecasts stop earlier (the GRU, which the scheduled runs
+    leave out) is compared with HAR on its own dates, so it does not cut the others' history short.
     """
     rows = []
     for series_id, group in forecasts.groupby("series_id"):
-        wide = group.pivot(index="date", columns="model_id", values="forecast_var").dropna()
-        realised = group.drop_duplicates("date").set_index("date")["realised_var"].reindex(wide.index)
-        wide, realised = wide[realised > 0], realised[realised > 0]
-        periods = {f"{wide.index[0].year}-{wide.index[-1].year}": None} | {
-            str(year): year for year in STRESS_YEARS
-        }
-        for period, year in periods.items():
-            in_period = wide.index.year == year if year else np.ones(len(wide), dtype=bool)
-            if not in_period.any():
-                continue
-            truth = realised[in_period]
-            losses = {model: evaluation.qlike(truth, wide.loc[in_period, model]) for model in wide.columns}
-            for model in wide.columns:
-                statistic, p_value = (
-                    evaluation.diebold_mariano(losses[model], losses[BASELINE], HORIZON)
-                    if model != BASELINE and BASELINE in losses
-                    else (np.nan, np.nan)
-                )
-                rows.append(
-                    {
-                        "series_id": series_id,
-                        "period": period,
-                        "model_id": model,
-                        "n_days": len(truth),
-                        "qlike": losses[model].mean(),
-                        "mse": evaluation.squared_error(truth, wide.loc[in_period, model]).mean(),
-                        "dm_stat_vs_har": statistic,
-                        "dm_p_vs_har": p_value,
-                    }
-                )
+        last_day = group.groupby("model_id")["date"].max()
+        up_to_date = list(last_day.index[last_day == last_day.max()])
+        every_model = group.pivot(index="date", columns="model_id", values="forecast_var")
+        realised = group.drop_duplicates("date").set_index("date")["realised_var"]
+        model_sets = [up_to_date] + [[model, BASELINE] for model in last_day.index if model not in up_to_date]
+        for models in model_sets:
+            wide = every_model[models].dropna()
+            truth = realised.reindex(wide.index)
+            wide, truth = wide[truth > 0], truth[truth > 0]
+            found = evaluation_rows(series_id, wide, truth)
+            rows += found if models is up_to_date else [row for row in found if row["model_id"] == models[0]]
     return pd.DataFrame(rows)
 
 

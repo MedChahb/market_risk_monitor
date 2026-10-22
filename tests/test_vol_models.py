@@ -221,3 +221,27 @@ def test_position_ranges_count_a_day_without_a_session_as_zero():
     ranges = vol_models.position_ranges(daily_range, dates)
     assert list(ranges) == ["CAC40"]  # positions without a range are absent
     assert ranges["CAC40"].tolist() == [1.0, 2.0, 0.0, 3.0]
+
+
+def test_a_model_that_stops_early_does_not_cut_the_other_models_history():
+    days = pd.bdate_range("2018-01-01", "2018-12-31")
+    rng = np.random.default_rng(5)
+    rows = []
+    for model, last in [("har", days[-1]), ("gjr", days[-1]), ("gru", pd.Timestamp("2018-06-29"))]:
+        kept = days[days <= last]
+        rows.append(
+            pd.DataFrame(
+                {
+                    "date": kept,
+                    "series_id": "book",
+                    "model_id": model,
+                    "forecast_var": rng.uniform(0.5, 1.5, len(kept)),
+                    "realised_var": 1.0,
+                    "inputs": "",
+                }
+            )
+        )
+    table = vol_models.results_table(pd.concat(rows, ignore_index=True)).set_index("model_id")
+    assert table.loc["gjr", "n_days"] == len(days)
+    assert table.loc["gru", "n_days"] == int((days <= "2018-06-29").sum())
+    assert not np.isnan(table.loc["gru", "dm_p_vs_har"])
