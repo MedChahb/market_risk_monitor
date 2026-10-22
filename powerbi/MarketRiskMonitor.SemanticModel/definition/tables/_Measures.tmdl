@@ -41,7 +41,7 @@ table _Measures
 			    DIVIDE ( LastLevel, FirstLevel )
 			RETURN
 			    IF ( HASONEVALUE ( dim_instrument[instrument_id] ) && NOT ISBLANK ( Ratio ), Ratio - 1 )
-		formatString: 0.0%
+		formatString: +0.0%;-0.0%;0.0%
 		displayFolder: Market
 		lineageTag: 1814e116-0aad-52ff-b7f6-08a9505e5fdf
 
