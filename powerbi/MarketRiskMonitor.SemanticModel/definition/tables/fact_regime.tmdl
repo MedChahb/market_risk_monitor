@@ -1,0 +1,79 @@
+table fact_regime
+	lineageTag: 386aed99-1212-5b10-b68b-b4878b827019
+
+	column date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: c7b0e04a-7773-5c39-ba46-bb4625f5d3d7
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column method
+		dataType: string
+		isHidden
+		lineageTag: a3879451-b124-5c99-8d13-7116a5028ccc
+		summarizeBy: none
+		sourceColumn: method
+
+		annotation SummarizationSetBy = Automatic
+
+	column fit
+		dataType: string
+		isHidden
+		lineageTag: 92a32398-50ad-5d7e-922e-9a09497c909a
+		summarizeBy: none
+		sourceColumn: fit
+
+		annotation SummarizationSetBy = Automatic
+
+	column regime_id
+		dataType: int64
+		isHidden
+		lineageTag: d5f663c8-2d2b-566e-b32a-130729d340ec
+		summarizeBy: none
+		sourceColumn: regime_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column p_calm
+		dataType: double
+		isHidden
+		lineageTag: 74266c19-6a31-5047-9c34-6433f7f35cd6
+		summarizeBy: none
+		sourceColumn: p_calm
+
+		annotation SummarizationSetBy = Automatic
+
+	column p_normal
+		dataType: double
+		isHidden
+		lineageTag: fed5d111-03c2-5cc1-975e-e2074e58a123
+		summarizeBy: none
+		sourceColumn: p_normal
+
+		annotation SummarizationSetBy = Automatic
+
+	column p_stress
+		dataType: double
+		isHidden
+		lineageTag: 4a479a7c-7ea9-59ab-9887-56e69b773958
+		summarizeBy: none
+		sourceColumn: p_stress
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_regime = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_regime.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"date", type date}, {"method", type text}, {"fit", type text}, {"regime_id", Int64.Type}, {"p_calm", type number}, {"p_normal", type number}, {"p_stress", type number}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

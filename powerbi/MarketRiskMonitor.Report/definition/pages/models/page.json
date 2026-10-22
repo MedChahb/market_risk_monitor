@@ -22,6 +22,11 @@
       "type": "NoFilter"
     },
     {
+      "source": "model",
+      "target": "qlike_by_regime",
+      "type": "NoFilter"
+    },
+    {
       "source": "series",
       "target": "qlike_matrix",
       "type": "NoFilter"
@@ -43,6 +48,11 @@
     },
     {
       "source": "forecast_against_realised",
+      "target": "qlike_by_regime",
+      "type": "NoFilter"
+    },
+    {
+      "source": "forecast_against_realised",
       "target": "diebold_mariano",
       "type": "NoFilter"
     },
@@ -54,6 +64,11 @@
     {
       "source": "qlike_by_model",
       "target": "qlike_matrix",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_by_model",
+      "target": "qlike_by_regime",
       "type": "NoFilter"
     },
     {
@@ -73,6 +88,31 @@
     },
     {
       "source": "qlike_matrix",
+      "target": "qlike_by_regime",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_matrix",
+      "target": "diebold_mariano",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_by_regime",
+      "target": "forecast_against_realised",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_by_regime",
+      "target": "qlike_by_model",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_by_regime",
+      "target": "qlike_matrix",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_by_regime",
       "target": "diebold_mariano",
       "type": "NoFilter"
     },
@@ -89,6 +129,11 @@
     {
       "source": "diebold_mariano",
       "target": "qlike_matrix",
+      "type": "NoFilter"
+    },
+    {
+      "source": "diebold_mariano",
+      "target": "qlike_by_regime",
       "type": "NoFilter"
     }
   ]

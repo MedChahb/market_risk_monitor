@@ -101,7 +101,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Models: volatility forecasts against realised volatility, QLIKE and Diebold-Mariano tests.",
+                    "value": "Models: volatility forecasts against realised volatility, QLIKE and Diebold-Mariano tests, errors by regime.",
                     "textStyle": {
                       "fontSize": "12pt",
                       "color": "#52514e"
@@ -123,7 +123,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Market: returns, volatility, drawdowns and rates of the book's assets.",
+                    "value": "Market: returns, volatility, drawdowns and rates of the book's assets, and the market regime.",
                     "textStyle": {
                       "fontSize": "12pt",
                       "color": "#52514e"

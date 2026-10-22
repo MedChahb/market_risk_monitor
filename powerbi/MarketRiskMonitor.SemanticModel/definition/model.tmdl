@@ -46,3 +46,7 @@ ref table 'Cost Curve Axis'
 ref cultureInfo en-GB
 
 ref table 'Order Size Parameter'
+
+ref table dim_regime
+ref table fact_regime
+ref table fact_forecast_regime

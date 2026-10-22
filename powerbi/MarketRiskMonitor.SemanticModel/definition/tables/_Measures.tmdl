@@ -403,6 +403,66 @@ table _Measures
 		displayFolder: Models
 		lineageTag: 6ea926f0-a7b6-5117-8eac-7e6726244219
 
+	/// Probability of the calm regime at each close, from the HMM refitted every January on past data only.
+	measure 'Probability Calm' =
+			CALCULATE (
+			    AVERAGE ( fact_regime[p_calm] ),
+			    fact_regime[method] = "hmm",
+			    fact_regime[fit] = "walk_forward"
+			)
+		formatString: 0%
+		displayFolder: Regimes
+		lineageTag: c8fd993f-741e-5244-adb8-0c5e4cdcbd08
+
+	/// Probability of the normal regime at each close, from the HMM refitted every January on past data only.
+	measure 'Probability Normal' =
+			CALCULATE (
+			    AVERAGE ( fact_regime[p_normal] ),
+			    fact_regime[method] = "hmm",
+			    fact_regime[fit] = "walk_forward"
+			)
+		formatString: 0%
+		displayFolder: Regimes
+		lineageTag: 26a19986-a613-5b75-a0cd-dfa5a401a248
+
+	/// Probability of the stress regime at each close, from the HMM refitted every January on past data only.
+	measure 'Probability Stress' =
+			CALCULATE (
+			    AVERAGE ( fact_regime[p_stress] ),
+			    fact_regime[method] = "hmm",
+			    fact_regime[fit] = "walk_forward"
+			)
+		formatString: 0%
+		displayFolder: Regimes
+		lineageTag: a38d85a1-f6a0-567a-813e-3c7371398281
+
+	/// Regime at the last close with data, from the walk-forward HMM, whatever the date filter.
+	measure 'Regime (latest)' =
+			VAR LatestRegimeDate =
+			    CALCULATE ( MAX ( fact_regime[date] ), REMOVEFILTERS ( dim_date ) )
+			VAR RegimeNumber =
+			    CALCULATE (
+			        MAX ( fact_regime[regime_id] ),
+			        REMOVEFILTERS ( dim_date ),
+			        fact_regime[date] = LatestRegimeDate,
+			        fact_regime[method] = "hmm",
+			        fact_regime[fit] = "walk_forward"
+			    )
+			RETURN
+			    LOOKUPVALUE ( dim_regime[Regime], dim_regime[regime_id], RegimeNumber )
+		displayFolder: Regimes
+		lineageTag: 6d4748d4-e132-5ae3-a5ff-0ad348ef64ca
+
+	/// Mean QLIKE of the 5-day volatility forecasts made in each regime (walk-forward HMM), computed in Python. One series at a time.
+	measure 'QLIKE by Regime' =
+			IF (
+			    HASONEVALUE ( dim_series[series_id] ),
+			    CALCULATE ( AVERAGE ( fact_forecast_regime[QLIKE in Regime] ), fact_forecast_regime[fit] = "walk_forward" )
+			)
+		formatString: 0.000
+		displayFolder: Regimes
+		lineageTag: 7e5cb1b7-c905-5474-8bde-54f903ac6cca
+
 	/// Forecast volume of the session as a multiple of the 20-day ADV at the previous close. One model and one stock at a time.
 	measure 'Volume Forecast (× ADV)' =
 			IF (

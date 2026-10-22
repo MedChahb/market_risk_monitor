@@ -1,0 +1,67 @@
+table fact_forecast_regime
+	lineageTag: 4b35f618-5946-553d-9158-75a03677be24
+
+	column fit
+		dataType: string
+		isHidden
+		lineageTag: 51d76294-7a56-5d42-b8d5-14d86170ae86
+		summarizeBy: none
+		sourceColumn: fit
+
+		annotation SummarizationSetBy = Automatic
+
+	column series_id
+		dataType: string
+		isHidden
+		lineageTag: 72e00371-88c8-57c9-8ec0-4607dba8f6ee
+		summarizeBy: none
+		sourceColumn: series_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column model_id
+		dataType: string
+		isHidden
+		lineageTag: 0a06ca66-a306-5e87-9412-30d55c79afc6
+		summarizeBy: none
+		sourceColumn: model_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column regime_id
+		dataType: int64
+		isHidden
+		lineageTag: 08d85db9-3028-5b8b-a64a-7242a34d5fe7
+		summarizeBy: none
+		sourceColumn: regime_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Regime Days'
+		dataType: int64
+		formatString: #,##0
+		lineageTag: de920a26-9a8f-5634-a3a6-efaba5aba1a7
+		summarizeBy: none
+		sourceColumn: n_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'QLIKE in Regime'
+		dataType: double
+		formatString: 0.000
+		lineageTag: faa51326-7a6b-569b-b10e-da1cab38eb7f
+		summarizeBy: none
+		sourceColumn: qlike
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_forecast_regime = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_forecast_regime.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"fit", type text}, {"series_id", type text}, {"model_id", type text}, {"regime_id", Int64.Type}, {"n_days", Int64.Type}, {"qlike", type number}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

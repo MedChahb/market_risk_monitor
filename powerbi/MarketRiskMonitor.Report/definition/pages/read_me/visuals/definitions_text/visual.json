@@ -144,6 +144,17 @@
                     }
                   }
                 ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Market regime: calm, normal or stress, from a hidden Markov model on equity volatility, return, correlation and the VIX, refitted every January on past data.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
               }
             ]
           }

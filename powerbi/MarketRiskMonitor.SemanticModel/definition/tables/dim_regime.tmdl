@@ -1,0 +1,32 @@
+table dim_regime
+	lineageTag: 26c0691e-ba9a-5746-a0a0-058cd8f72902
+
+	column regime_id
+		dataType: int64
+		isHidden
+		isKey
+		lineageTag: 2a60bcb6-00f0-5281-afd5-4530f21437db
+		summarizeBy: none
+		sourceColumn: regime_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Regime
+		dataType: string
+		lineageTag: cc8ec2d2-86a6-5a03-a9df-f56ed25642da
+		summarizeBy: none
+		sourceColumn: name
+		sortByColumn: regime_id
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_regime = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\dim_regime.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"regime_id", Int64.Type}, {"name", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
