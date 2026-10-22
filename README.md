@@ -4,7 +4,7 @@ Market risk monitoring of a fictional multi-asset trading book in euros (equitie
 
 The goal: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall, and backtests them, with the results reported in Power BI.
 
-**Status:** work in progress. Ingestion, the data quality gate, the silver/gold storage and the book P&L are in place; this README grows as each part is built.
+**Status:** work in progress. Ingestion, the data quality gate, the silver/gold storage, the book P&L and a first Power BI report are in place; this README grows as each part is built.
 
 ## Data lineage
 
@@ -43,6 +43,24 @@ A fictional 10 M€ book with constant notionals (daily rebalancing), valued in 
 | USD cash | 1 M€ | USD/EUR |
 
 USD positions are converted at the ECB reference rate. The P&L is hypothetical (fixed positions revalued with market moves). Over 2008-2026 the book's annualised P&L volatility is 1.11 M€, a third below the sum of the stand-alone positions; its worst day is 12 March 2020 (−687 k€, about ten daily standard deviations). Analysis in [`notebooks/01_book_pnl.ipynb`](notebooks/01_book_pnl.ipynb).
+
+## Power BI report
+
+Three pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`](powerbi/): the semantic model in TMDL and the pages in PBIR, so every change to a measure or a visual is a reviewable diff. Report changes are listed in [CHANGELOG.md](CHANGELOG.md).
+
+**Market.** Return, volatility, worst day and drawdown over the selected dates; indices rebased to 100 on a log scale, 22-day volatility and the euro AAA 10-year yield.
+
+![Market page](docs/images/report_market.png)
+
+**Correlation.** Pairwise correlation of daily moves by period. Over the last 250 days, Euro Stoxx 50 returns and 10-year yield changes correlate at −0.47, against +0.20 since 2008: the book's bond position has recently moved with its equities instead of against them.
+
+![Correlation page](docs/images/report_correlation.png)
+
+**Data quality.** Results of the latest quality run, flagged observations by rule and series, and how late each series is.
+
+![Data quality page](docs/images/report_data_quality.png)
+
+To open it, run the pipeline below, open `powerbi/MarketRiskMonitor.pbip` in Power BI Desktop, point the `DataFolder` parameter (Transform data > Edit parameters) to your `data/gold` folder and refresh.
 
 ## Quick start
 
