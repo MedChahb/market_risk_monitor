@@ -23,6 +23,7 @@ log = logging.getLogger("transform")
 
 PRICE_LIKE = ("equity index", "commodity", "fx")
 VOL_WINDOW = 22  # observed trading days, about one month
+RANGE_FIELDS = ["open", "high", "low", "close"]
 CORRELATION_WINDOW = 250  # reporting days, about one year
 FACT_MARKET_COLUMNS = [
     "date",
@@ -75,6 +76,38 @@ def build_silver(raws: dict[str, pd.DataFrame | None]) -> pd.DataFrame:
         frames.append(frame.dropna(subset=["value"]))  # a gap before the first value has nothing to carry
     silver = pd.concat(frames, ignore_index=True)
     return silver.sort_values(["date", "instrument_id"]).reset_index(drop=True)
+
+
+def range_variance(prices: pd.DataFrame) -> pd.DataFrame:
+    """Close-to-close daily variance in percent squared, estimated from open, high, low and close.
+
+    Garman and Klass (1980) on the trading session plus the overnight gap from the previous close
+    (Yang and Zhang, 2000). Where the prices contradict each other (high below the close, high equal
+    to the low), the squared close-to-close log return is used instead.
+    """
+    log_high_low = np.log(prices["high"] / prices["low"])
+    log_close_open = np.log(prices["close"] / prices["open"])
+    overnight = np.log(prices["open"] / prices["close"].shift())
+    estimate = overnight**2 + 0.5 * log_high_low**2 - (2 * np.log(2) - 1) * log_close_open**2
+    squared_return = np.log(prices["close"] / prices["close"].shift()) ** 2
+    body_top, body_bottom = prices[["open", "close"]].max(axis=1), prices[["open", "close"]].min(axis=1)
+    consistent = (
+        (prices["high"] > prices["low"]) & (prices["high"] >= body_top) & (prices["low"] <= body_bottom)
+    )
+    variance = estimate.where(consistent, squared_return).clip(lower=0) * 1e4
+    return pd.DataFrame({"range_variance": variance, "is_fallback": ~consistent}).dropna()
+
+
+def build_daily_range(yahoo: pd.DataFrame | None) -> pd.DataFrame:
+    """Range-based variance of every Yahoo series in silver, on the days it was observed."""
+    frames = []
+    for series in CATALOG:
+        if series.source != "yahoo" or series.role == "cross-check" or yahoo is None:
+            continue
+        estimate = range_variance(raw.series_fields(yahoo, series, RANGE_FIELDS).dropna())
+        frames.append(estimate.rename_axis("date").reset_index().assign(instrument_id=series.instrument))
+    columns = ["date", "instrument_id", "range_variance", "is_fallback"]
+    return pd.concat(frames, ignore_index=True)[columns] if frames else pd.DataFrame(columns=columns)
 
 
 def build_dim_date(trading_days: pd.DatetimeIndex, as_of: date) -> pd.DataFrame:
@@ -231,10 +264,12 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     silver = build_silver(raws)
+    daily_range = build_daily_range(raws["yahoo"])
     gold = build_gold(silver, args.as_of)
     with db.engine().begin() as conn:  # one transaction: readers never see a half-built schema
         db.run_sql_file(conn, "storage.sql")
         db.insert(conn, "silver", "market", silver)
+        db.insert(conn, "silver", "daily_range", daily_range)
         for table, frame in gold.items():
             db.insert(conn, "gold", table, frame)
 
@@ -248,6 +283,8 @@ def main(argv: list[str] | None = None) -> int:
         last,
         n_filled,
     )
+    fallbacks = daily_range.groupby("instrument_id")["is_fallback"].sum().to_dict()
+    log.info("silver.daily_range: %d rows; fallback days by instrument: %s", len(daily_range), fallbacks)
     for table, frame in gold.items():
         log.info("gold.%s: %d rows", table, len(frame))
     return 0
