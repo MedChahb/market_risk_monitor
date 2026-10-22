@@ -1,4 +1,5 @@
-"""Load the quality results and the model forecasts into gold, then export every gold table to Parquet.
+"""Load the quality results, the model forecasts and the monitoring history into gold, then export every
+gold table to Parquet.
 
 Files are exported from PostgreSQL, not from memory, so the report reads exactly what the database
 holds; the run fails if a file's row count differs from its table's. Flagged values are kept only
@@ -24,6 +25,12 @@ log = logging.getLogger("publish")
 TABLES = text(
     "SELECT table_name FROM information_schema.tables WHERE table_schema = :schema AND table_type = 'BASE TABLE'"
 )
+MONITORING_TABLES = {
+    "fact_runs": config.RUNS_FILE,
+    "fact_drift": config.DRIFT_FILE,
+    "fact_model_monitor": config.MODEL_MONITOR_FILE,
+    "fact_promotion": config.PROMOTIONS_FILE,
+}
 QUALITY_TABLES = {
     "fact_dq": "fact_dq.parquet",
     "fact_dq_flags": "dq_flags.parquet",
@@ -77,6 +84,14 @@ def load_forecasts(conn: Connection, forecast_dir: Path) -> None:
         log.warning("%s not found: gold.fact_forecast_evaluation left empty", evaluation)
 
 
+def load_monitoring(conn: Connection) -> None:
+    """Rewrite the monitoring tables from their history files; a missing file leaves its table empty."""
+    db.run_sql_file(conn, "monitoring.sql")
+    for table, path in MONITORING_TABLES.items():
+        if path.exists():
+            db.insert(conn, "gold", table, pd.read_parquet(path))
+
+
 def read_for_parquet(conn: Connection, schema: str, table: str, typed_columns: list) -> pd.DataFrame:
     """Read a table for Parquet: dates as date32, integers as integers even with NULLs, timestamps as plain UTC."""
     frame = pd.read_sql_table(table, conn, schema=schema)
@@ -93,15 +108,23 @@ def read_for_parquet(conn: Connection, schema: str, table: str, typed_columns: l
     return frame
 
 
+def export_tables(conn: Connection, schema: str, tables, out_dir: Path) -> list[str]:
+    """Write the given tables of the schema to Parquet; return their names."""
+    typed_columns = conn.execute(TYPED_COLUMNS, {"schema": schema}).all()
+    for table in tables:
+        files.write_parquet(
+            read_for_parquet(conn, schema, table, typed_columns), out_dir / f"{table}.parquet"
+        )
+    return list(tables)
+
+
 def export_schema(conn: Connection, schema: str, out_dir: Path) -> pd.DataFrame:
     """Write every table of the schema to Parquet; return the row counts on both sides."""
     tables = sorted(conn.execute(TABLES, {"schema": schema}).scalars())
-    typed_columns = conn.execute(TYPED_COLUMNS, {"schema": schema}).all()
+    export_tables(conn, schema, tables, out_dir)
     counts = []
     for table in tables:
-        path = files.write_parquet(
-            read_for_parquet(conn, schema, table, typed_columns), out_dir / f"{table}.parquet"
-        )
+        path = out_dir / f"{table}.parquet"
         counts.append(
             {
                 "table": table,
@@ -130,6 +153,7 @@ def main(argv: list[str] | None = None) -> int:
     with engine.begin() as conn:
         load_quality_results(conn, args.dq_dir)
         load_forecasts(conn, args.forecast_dir)
+        load_monitoring(conn)
     with engine.connect() as conn:
         counts = export_schema(conn, "gold", args.gold_dir)
     for row in counts.itertuples():

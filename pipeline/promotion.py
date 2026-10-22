@@ -25,7 +25,6 @@ log = logging.getLogger("promotion")
 
 WINDOW = 250  # days of the comparison, about 12 months
 ZONE_RANK = {"green": 0, "yellow": 1, "red": 2}
-PROMOTIONS_FILE = config.MONITORING_DIR / "promotions.parquet"
 
 
 def score_candidates(pnl: pd.Series, variances: dict[str, pd.Series], window: int = WINDOW) -> pd.DataFrame:
@@ -118,9 +117,9 @@ def main(argv: list[str] | None = None) -> int:
             }
         ]
     )
-    history = pd.read_parquet(PROMOTIONS_FILE) if PROMOTIONS_FILE.exists() else row.iloc[0:0]
+    history = pd.read_parquet(config.PROMOTIONS_FILE) if config.PROMOTIONS_FILE.exists() else row.iloc[0:0]
     files.write_parquet(
-        pd.concat([history[history["run_id"] != args.run_id], row], ignore_index=True), PROMOTIONS_FILE
+        pd.concat([history[history["run_id"] != args.run_id], row], ignore_index=True), config.PROMOTIONS_FILE
     )
 
     log.info(
