@@ -3,8 +3,9 @@
 VaR and ES are positive losses in euros. A figure computed at the close of day t covers day t+1 and is
 stored with t+1 as `for_date`; the last row covers the next reporting day, not yet in the data.
 Historical simulation reads the last 250 book P&Ls. The parametric methods scale normal quantiles by a
-1-day volatility forecast (EWMA, GARCH, and GJR-GARCH, the volatility champion). Filtered historical
-simulation rescales the last 500 returns, each divided by its own GJR forecast, to tomorrow's forecast.
+1-day volatility forecast (EWMA, GARCH, and the champion of the model registry, GJR-GARCH until a
+weekly promotion run replaces it). Filtered historical simulation rescales the last 500 returns, each
+divided by its own GJR forecast, to tomorrow's forecast.
 GARCH-type models are refitted at the start of every month from 2010 on all past data. Rebuilt at
 every run.
 """
@@ -19,7 +20,7 @@ from dotenv import load_dotenv
 from scipy import stats
 from sqlalchemy import text
 
-from pipeline import calendars, config, db, vol_models
+from pipeline import calendars, config, db, registry, vol_models
 from pipeline.book import BOOK_NOTIONAL
 
 log = logging.getLogger("var")
@@ -34,6 +35,9 @@ NORMAL_VAR = stats.norm.ppf(VAR_LEVEL)  # 2.326
 NORMAL_ES = stats.norm.pdf(stats.norm.ppf(ES_LEVEL)) / (1 - ES_LEVEL)  # 2.338: mean of the tail beyond 1.96
 PNL_QUERY = text("SELECT date, pnl_eur FROM gold.fact_pnl")
 VAR_COLUMNS = ["for_date", "method_id", "var_99_eur", "es_975_eur"]
+CHAMPION_NAME = text(
+    "UPDATE gold.dim_method SET name = :name, description = :description WHERE method_id = 'param_champion'"
+)
 
 
 def book_pnl(pnl: pd.DataFrame) -> pd.Series:
@@ -96,13 +100,15 @@ def to_for_date(estimates: pd.DataFrame, dates: pd.DatetimeIndex) -> pd.DataFram
     return estimates.set_axis(following.reindex(estimates.index).to_numpy())
 
 
-def build_fact_var(pnl: pd.Series, variances: dict[str, pd.Series]) -> pd.DataFrame:
+def build_fact_var(
+    pnl: pd.Series, variances: dict[str, pd.Series], champion: str = registry.DEFAULT_CHAMPION
+) -> pd.DataFrame:
     returns = pnl / BOOK_NOTIONAL * 100
     methods = {
         "hs": historical(pnl),
         "param_ewma": parametric(variances["ewma"]),
         "param_garch": parametric(variances["garch"]),
-        "param_champion": parametric(variances["gjr"]),
+        "param_champion": parametric(variances[champion]),
         "fhs": filtered_historical(returns, variances["gjr"]),
     }
     frames = []
@@ -132,10 +138,19 @@ def main(argv: list[str] | None = None) -> int:
     with engine.connect() as conn:
         pnl = book_pnl(pd.read_sql(PNL_QUERY, conn))
     variances = one_day_variances(pnl / BOOK_NOTIONAL * 100)
-    fact_var = build_fact_var(pnl, variances)
+    champion = registry.champion()
+    fact_var = build_fact_var(pnl, variances, champion)
     with engine.begin() as conn:
         db.run_sql_file(conn, "var.sql")
         db.insert(conn, "gold", "fact_var", fact_var)
+        conn.execute(
+            CHAMPION_NAME,
+            {
+                "name": f"Parametric ({registry.SHORT_NAMES[champion]})",
+                "description": f"Normal quantile, {registry.LONG_NAMES[champion]} volatility (the registry's champion)",
+            },
+        )
+    log.info("parametric champion: %s", champion)
 
     first, last = f"{fact_var['for_date'].min():%Y-%m-%d}", f"{fact_var['for_date'].max():%Y-%m-%d}"
     log.info("gold.fact_var: %d rows, %s to %s", len(fact_var), first, last)
