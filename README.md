@@ -4,7 +4,7 @@ Market risk monitoring of a fictional multi-asset trading book in euros (equitie
 
 The goal: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall, and backtests them, with the results reported in Power BI.
 
-**Status:** work in progress. Ingestion, the data quality gate, the silver/gold storage, the book P&L, volatility forecasts and a first Power BI report are in place; this README grows as each part is built.
+**Status:** work in progress. Ingestion, the data quality gate, the silver/gold storage, the book P&L, volatility forecasts, VaR and ES, and a first Power BI report are in place; this README grows as each part is built.
 
 ## Data lineage
 
@@ -22,6 +22,8 @@ flowchart LR
     B --> G
     B --> V[volatility models<br/>7 models, walk-forward]
     V --> G
+    V --> VR[VaR and ES<br/>5 methods]
+    VR --> G
     DQ --> G
     G --> P[gold Parquet<br/>data/gold]
     P --> BI[Power BI report]
@@ -59,6 +61,12 @@ GJR-GARCH is the champion volatility forecast for the VaR: lowest QLIKE on the b
 
 Main references: Bollerslev (1986), Glosten, Jagannathan and Runkle (1993), Corsi (2009), Garman and Klass (1980), Yang and Zhang (2000), Patton (2011), Diebold and Mariano (1995), Hansen and Lunde (2005), Hansen, Lunde and Nason (2011), Christensen, Siggaard and Veliyev (2023), Branco, Rubesam and Zevallos (2024); full citations in the notebook.
 
+## Value at Risk and Expected Shortfall
+
+The 1-day VaR 99% and ES 97.5% of the book are computed every day from 2012 with five methods ([`pipeline/var.py`](pipeline/var.py), analysis in [`notebooks/03_var.ipynb`](notebooks/03_var.ipynb)): historical simulation on the last 250 P&Ls, normal parametric with EWMA, GARCH and GJR-GARCH 1-day forecasts, and filtered historical simulation (500 returns standardised by GJR-GARCH and rescaled to tomorrow's volatility). Each figure is stored with the day it covers.
+
+In March 2020 the volatility-driven VaRs doubled by 25-28 February, before the worst losses of 9-16 March; historical simulation doubled only on 17 March and stayed at its peak until February 2021. On 12 March 2020, the book's worst day (a loss of 687 k€), the VaR was 220 k€ with historical simulation, 556 k€ with the GJR parametric method and 754 k€ with filtered historical simulation. The method to recommend is decided by the backtest (Kupiec, Christoffersen, Basel traffic light).
+
 ## Power BI report
 
 Three pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`](powerbi/): the semantic model in TMDL and the pages in PBIR, so every change to a measure or a visual is a reviewable diff. Report changes are listed in [CHANGELOG.md](CHANGELOG.md).
@@ -89,6 +97,7 @@ docker compose up -d               # PostgreSQL 16 on 127.0.0.1:5432
 .venv/bin/python -m pipeline.transform                    # silver and gold tables in PostgreSQL
 .venv/bin/python -m pipeline.book                         # daily P&L of the book
 .venv/bin/python -m pipeline.vol_models                   # volatility forecasts (the GRU: about 30 min on a GPU, 70 on CPU)
+.venv/bin/python -m pipeline.var                          # daily VaR and ES of the book
 .venv/bin/python -m pipeline.publish                      # gold tables to data/gold/*.parquet
 .venv/bin/pytest                                           # tests (database tests skip without PostgreSQL)
 ```
