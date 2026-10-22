@@ -4,7 +4,7 @@ Market risk monitoring of a fictional multi-asset trading book in euros (equitie
 
 The goal: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall and backtests them, forecasts traded volumes and estimates the cost of an order, with the results reported in Power BI.
 
-**Status:** v1.0 (22 October 2026): data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest, and a six-page Power BI report. Since v1.0: volume forecasts and pre-trade costs for ten CAC 40 stocks, with an Execution page in the report, and daily market regimes. Scheduling and monitoring, anomaly detection and a public web app come next.
+**Status:** v1.0 (22 October 2026): data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest, and a six-page Power BI report. Since v1.0: volume forecasts and pre-trade costs for ten CAC 40 stocks, with an Execution page in the report, daily market regimes and an anomaly detector for market data. Scheduling and monitoring and a public web app come next.
 
 ## Data lineage
 
@@ -13,7 +13,7 @@ flowchart LR
     Y[Yahoo Finance<br/>indices, gold, 10 CAC 40 stocks,<br/>EUR/USD check] --> R[(raw Parquet<br/>data/raw)]
     E[ECB Data Portal<br/>EUR/USD, AAA 2y and 10y yields] --> R
     F[FRED<br/>VIX, US 10y-2y] --> R
-    R --> Q{quality gate<br/>pandera + 10 rules}
+    R --> Q{quality gate<br/>pandera + 11 rules,<br/>anomaly detector}
     Q -->|critical failure| X[pipeline stops]
     Q -->|results| DQ[(fact_dq, dq_flags)]
     Q -->|pass| S[(PostgreSQL silver<br/>aligned daily series)]
@@ -32,12 +32,14 @@ flowchart LR
     C --> G
     G --> MR[market regimes<br/>HMM, walk-forward]
     MR --> G
+    R --> AE[detector evaluation<br/>injected errors]
+    AE --> G
     DQ --> G
     G --> P[gold Parquet<br/>data/gold]
     P --> BI[Power BI report]
 ```
 
-Twenty daily series from 2008, described with their units, calendars, licences and known issues in the [data dictionary](docs/data_dictionary.md). Critical rules (schema, duplicate keys, non-positive prices, yields out of range) stop the pipeline; warnings (missing sessions, stale values, moves above 15% for indices and 25% for stocks, late data, Yahoo vs ECB EUR/USD gap above 2%, zero volume) are stored and reported.
+Twenty daily series from 2008, described with their units, calendars, licences and known issues in the [data dictionary](docs/data_dictionary.md). Critical rules (schema, duplicate keys, non-positive prices, yields out of range) stop the pipeline; warnings (missing sessions, stale values, moves above 15% for indices and 25% for stocks, late data, Yahoo vs ECB EUR/USD gap above 2%, zero volume, suspect prices from the anomaly detector) are stored and reported.
 
 Silver aligns every series on the days when Paris or New York trades, carrying the last value forward on a market holiday or a feed gap, with the reason recorded; the stocks keep their own daily bars. Gold is a star schema (`fact_market`, `fact_dq` around `dim_date`, `dim_instrument` and reference dimensions) with a trading-day index for rolling windows; it is exported to Parquet for the report, with raw levels only where the source licence allows it.
 
@@ -119,6 +121,21 @@ The regimes match known episodes (83% of 2008 in stress, the 2020 crash from 27 
 
 Historical simulation fails when markets turn stressed (Kupiec p = 0.001 in stress), the normal parametric VaR fails in calm markets (p = 0.045), and filtered historical simulation keeps close to 1% in every regime. GJR-GARCH has the lowest volatility forecast loss on the book in normal and stress regimes. The yield-curve slope was left out of the features: it moves too slowly and turned a regime into the steep-curve years of the early 2010s.
 
+## Market data anomaly detector
+
+A wrong price propagates into the P&L, the VaR and every model, so suspect prices are flagged at ingestion ([`pipeline/anomalies.py`](pipeline/anomalies.py), analysis in [`notebooks/07_anomalies.ipynb`](notebooks/07_anomalies.ipynb)). A daily move is suspect when it is extreme for its series (a robust z-score against the previous 63 returns, from the median and MAD) and either reverses the next day while the other assets stay quiet (a bad tick), or is larger than any real move since 2008 (a level shift, such as an unadjusted split). The quality gate reports these days as a warning.
+
+Market data has no labels, so the detector is measured on 200 errors of each type injected into the real closes of the fourteen Yahoo price series with a fixed seed ([`pipeline/anomaly_evaluation.py`](pipeline/anomaly_evaluation.py)):
+
+| Errors caught (share of 200) | Spike | Frozen | Decimal ×10 | Split | Missing days | Roll jump | Precision |
+|---|---|---|---|---|---|---|---|
+| Rules (stale values, missing sessions) | 0% | 100% | 0% | 0% | 100% | 0% | 86.0% |
+| Robust z-score | 78.5% | 0.5% | 100% | 95.5% | 0.5% | 0% | 99.2% |
+| Isolation Forest, 1% of days flagged | 86.5% | 3.5% | 100% | 85% | 2.5% | 10.5% | 63.2% |
+| **Production: rules and robust z-score** | **78.5%** | **100%** | **100%** | **95.5%** | **100%** | **0%** | **91.2%** |
+
+The production detector flags none of the ten largest real moves and five days in eighteen years of real data, including an Air Liquide close on a quarterly expiry Friday that reversed the next day. The Isolation Forest is less precise for the same recall and flags genuine extreme days, so it is kept as a benchmark. Roll jumps of 2% to 6% look like ordinary moves and need the futures roll calendar or a second source.
+
 ## Power BI report
 
 Seven pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`](powerbi/): the semantic model in TMDL (56 measures) and the pages in PBIR, so every change to a measure or a visual is a reviewable diff. Report changes are listed in [CHANGELOG.md](CHANGELOG.md); the full report is also in [`docs/report.pdf`](docs/report.pdf).
@@ -143,7 +160,7 @@ Seven pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi
 
 ![Correlation page](docs/images/report_correlation.png)
 
-**Data quality.** Results of the latest quality run, flagged observations by rule and series, and how late each series is. A **Read me** page gives the definitions, sources and refresh procedure.
+**Data quality.** Results of the latest quality run, flagged observations by rule and series, how late each series is, and the anomaly detector's precision and recall on injected errors. A **Read me** page gives the definitions, sources and refresh procedure.
 
 ![Data quality page](docs/images/report_data_quality.png)
 
@@ -166,6 +183,7 @@ docker compose up -d               # PostgreSQL 16 on 127.0.0.1:5432
 .venv/bin/python -m pipeline.volume_models                # next-session volume forecasts of the ten stocks
 .venv/bin/python -m pipeline.costs                        # spreads and pre-trade costs
 .venv/bin/python -m pipeline.regimes                      # market regimes, exceptions and forecast errors by regime
+.venv/bin/python -m pipeline.anomaly_evaluation           # anomaly detector measured on injected errors
 .venv/bin/python -m pipeline.publish                      # gold tables to data/gold/*.parquet
 .venv/bin/pytest                                           # tests (database tests skip without PostgreSQL)
 ```
