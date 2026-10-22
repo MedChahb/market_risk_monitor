@@ -214,7 +214,7 @@ A **critical** rule stops the pipeline before the silver tables (`python -m pipe
 | `late_data` | Warning | Every series | Last date before the previous session | Some sources publish the next morning; a late day is not an error |
 | `fx_cross_source` | Warning | `EURUSD_YAHOO` vs `EURUSD` | Relative gap above 2% | The two sources fix at different times; 2% is about 3.6 daily standard deviations of EUR/USD (0.56%) |
 
-## Known data issues (checked on 2026-10-21)
+## Known data issues (checked on 2026-10-21, FRED on 2026-10-22)
 
 - **Yahoo EUR/USD, August 2008:** 8 observations are stored with day and month swapped. For example, the row dated 2008-01-08 (1.5571) matches the ECB rate of 2008-08-01 (1.5574). Most of August 2008 is therefore missing. Over the full history, 16 days differ from the ECB by more than 2%: the swapped rows, and days with large moves between the two fixing times (for example 2016-06-24, the day after the Brexit vote, and 2024-11-06). The ECB series is the one used for conversion.
 - **Yahoo Euro Stoxx 50:** 98 XPAR sessions missing since 2008, about five a year, mostly Swiss holidays (1 August, Ascension, Whit Monday) and US holidays. The index is calculated on those days; the gaps come from the feed.
@@ -223,4 +223,6 @@ A **critical** rule stops the pipeline before the silver tables (`python -m pipe
 - **Yahoo gold:** 3 NYSE sessions missing (2016-10-10, 2016-11-11, 2018-01-29).
 - **Yahoo EUR/USD:** 1 value repeated 3 days in a row (2013-06-12), 1 daily move of +17.3% (2008-12-08, part of the August 2008 issue).
 - **Volume:** not used for indices. Yahoo reports zero volume on 1,413 days for the Euro Stoxx 50 and on every day for EUR/USD.
-- **FRED:** unavailable on 2026-10-21 (maintenance page served with HTTP 200); VIX and the US curve slope are reported late until the next successful download.
+- **FRED:** unavailable from 2026-10-21 to the morning of 2026-10-22 (a "proactive maintenance" page served with HTTP 200, the same day as the PHP2Shell disclosure); downloaded on 2026-10-22, 2008-01-02 to 2026-10-21.
+- **FRED VIX:** published the next day, so it is one session late at each morning run (`late_data` warning).
+- **FRED US 10-year minus 2-year:** quoted to two decimals in percentage points, so the same value often repeats over several days: 88 `stale_value` warnings since 2008, a property of the series rather than a feed outage.
