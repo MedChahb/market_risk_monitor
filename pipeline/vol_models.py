@@ -35,6 +35,9 @@ TEST_START = pd.Timestamp("2018-01-01")
 EWMA_DECAY = 0.94  # RiskMetrics value for daily data
 EPSILON = 1e-6  # added to squared returns (percent squared) before taking logs
 SEQUENCE_LENGTH = 22  # days of history the GRU reads, about a month
+DEVICE = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)  # GPU when the CUDA build of PyTorch finds one
 MODELS = ("ewma", "garch", "gjr", "har", "har_range", "xgboost", "gru")
 BASELINE = "har"
 HAR_COLUMNS = ["log_rv_d", "log_rv_w", "log_rv_m"]
@@ -204,12 +207,14 @@ class Gru:
         self.mean, self.std = sequences.mean(axis=(0, 1)), sequences.std(axis=(0, 1)) + 1e-8
         self.target_mean, self.target_std = log_target.mean(), log_target.std()
         inputs = self._tensor(sequences)
-        target = torch.tensor((log_target - self.target_mean) / self.target_std, dtype=torch.float32)
-        self.network = GruNetwork(inputs.shape[2], self.hidden)
+        target = torch.tensor(
+            (log_target - self.target_mean) / self.target_std, dtype=torch.float32, device=DEVICE
+        )
+        self.network = GruNetwork(inputs.shape[2], self.hidden).to(DEVICE)
         optimiser = torch.optim.Adam(self.network.parameters(), lr=self.learning_rate)
         order_generator = torch.Generator().manual_seed(0)
         for _ in range(self.epochs):
-            order = torch.randperm(len(inputs), generator=order_generator)
+            order = torch.randperm(len(inputs), generator=order_generator).to(DEVICE)
             for start in range(0, len(inputs), self.batch_size):
                 batch = order[start : start + self.batch_size]
                 optimiser.zero_grad()
@@ -222,11 +227,11 @@ class Gru:
         return np.exp(self._log_forecast(sequences)) * self.smearing
 
     def _tensor(self, sequences: np.ndarray) -> torch.Tensor:
-        return torch.tensor((sequences - self.mean) / self.std, dtype=torch.float32)
+        return torch.tensor((sequences - self.mean) / self.std, dtype=torch.float32, device=DEVICE)
 
     def _log_forecast(self, sequences: np.ndarray) -> np.ndarray:
         with torch.no_grad():
-            standardised = self.network(self._tensor(sequences)).numpy()
+            standardised = self.network(self._tensor(sequences)).cpu().numpy()
         return standardised * self.target_std + self.target_mean
 
 
