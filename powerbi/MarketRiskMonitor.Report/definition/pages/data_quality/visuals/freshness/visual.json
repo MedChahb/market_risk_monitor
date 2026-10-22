@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
   "name": "freshness",
   "position": {
-    "x": 1236,
+    "x": 936,
     "y": 688,
     "z": 6000,
-    "width": 652,
+    "width": 520,
     "height": 360,
     "tabOrder": 6000
   },
@@ -70,20 +70,6 @@
               },
               "queryRef": "fact_freshness.Sessions Late",
               "nativeQueryRef": "Sessions Late"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "fact_freshness"
-                    }
-                  },
-                  "Property": "Is Late"
-                }
-              },
-              "queryRef": "fact_freshness.Is Late",
-              "nativeQueryRef": "Is Late"
             }
           ]
         }

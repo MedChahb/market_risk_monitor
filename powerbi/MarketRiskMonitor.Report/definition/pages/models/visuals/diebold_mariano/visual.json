@@ -146,13 +146,40 @@
                               "Value": "'#ffffff'"
                             }
                           }
+                        },
+                        {
+                          "Condition": {
+                            "Comparison": {
+                              "ComparisonKind": 2,
+                              "Left": {
+                                "Aggregation": {
+                                  "Expression": {
+                                    "Column": {
+                                      "Expression": {
+                                        "SourceRef": {
+                                          "Entity": "fact_forecast_evaluation"
+                                        }
+                                      },
+                                      "Property": "DM p vs HAR"
+                                    }
+                                  },
+                                  "Function": 4
+                                }
+                              },
+                              "Right": {
+                                "Literal": {
+                                  "Value": "0.0D"
+                                }
+                              }
+                            }
+                          },
+                          "Value": {
+                            "Literal": {
+                              "Value": "'#f6cfcb'"
+                            }
+                          }
                         }
-                      ],
-                      "DefaultValue": {
-                        "Literal": {
-                          "Value": "'#f6cfcb'"
-                        }
-                      }
+                      ]
                     }
                   }
                 }

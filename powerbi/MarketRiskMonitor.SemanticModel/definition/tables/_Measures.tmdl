@@ -315,7 +315,7 @@ table _Measures
 
 	/// Days in the selection when the loss exceeded the VaR of the previous close. One method at a time.
 	measure Exceptions =
-			IF ( HASONEVALUE ( dim_method[method_id] ), CALCULATE ( COUNTROWS ( fact_backtest ), fact_backtest[is_exception] = TRUE () ) + 0 )
+			IF ( HASONEVALUE ( dim_method[method_id] ) && NOT ISEMPTY ( fact_backtest ), CALCULATE ( COUNTROWS ( fact_backtest ), fact_backtest[is_exception] = TRUE () ) + 0 )
 		formatString: #,##0
 		displayFolder: Risk
 		lineageTag: 6b18cc33-4112-5440-bd33-d2590b55c6f3

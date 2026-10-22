@@ -3,10 +3,10 @@
   "name": "failed_rules_by_run",
   "position": {
     "x": 1480,
-    "y": 280,
+    "y": 688,
     "z": 4000,
     "width": 408,
-    "height": 384,
+    "height": 360,
     "tabOrder": 4000
   },
   "visual": {
