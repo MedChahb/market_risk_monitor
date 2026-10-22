@@ -242,6 +242,22 @@ Key: (`date`, `instrument_id`, `model_id`). Models are refitted at the start of 
 
 **`fact_cost`**: pre-trade cost of an order of 1%, 5%, 10% and 20% of the session's volume (`participation`): `spread_bp`, `impact_bp` (`Y × volatility_bp × √participation`, Y = 1, the upper end of the 0.5 to 1 range reported by Tóth, Eisler and Bouchaud, 2016) and `cost_bp` (`spread_bp / 2 + impact_bp`). Key: (`date`, `instrument_id`, `participation`).
 
+**`fact_regime`**: daily market regime from 28 February 2008, rebuilt by [`pipeline/regimes.py`](../pipeline/regimes.py) at every run. Features at each reporting day: the log of the mean 22-day volatility of the CAC 40, Euro Stoxx 50 and S&P 500, their mean 22-day return, the mean pairwise 63-day correlation of their observed daily returns, and the log of the VIX.
+
+| Column | Type | Description |
+|---|---|---|
+| `date` | date | Reporting day; to `dim_date` |
+| `method` | text | `hmm` (three-state Gaussian hidden Markov model, full covariance, best of 10 EM starts) or `gmm` (Gaussian mixture, same features) |
+| `fit` | text | `full_history`: fitted on every day, smoothed probabilities, uses later data (descriptive); `walk_forward`: HMM refitted every January from 2012 on past data, standardised with past statistics, filtered forward (known at the close) |
+| `regime_id` | int | Most probable regime; to `dim_regime` (0 calm, 1 normal, 2 stress; states ordered by mean volatility) |
+| `p_calm`, `p_normal`, `p_stress` | double | Regime probabilities, summing to 1 |
+
+Key: (`date`, `method`, `fit`).
+
+**`fact_regime_profile`**: per `method`, `fit` and `regime_id`: `n_days`, `share_of_days`, `mean_duration_days` (average uninterrupted spell) and the regime's mean `volatility`, `return_22d`, `correlation_63d` and `vix`. **`fact_regime_transition`**: observed day-to-day transition frequencies (`regime_from`, `regime_to`, `probability`) per `method` and `fit`.
+
+**`fact_backtest_regime`**: VaR exceptions by the HMM regime at the close when each VaR was computed, per `fit` and `method_id`: `n_days`, `n_exceptions`, `expected_exceptions` (1% of the days) and `kupiec_p`. **`fact_forecast_regime`**: mean QLIKE of each volatility model (`series_id`, `model_id`) by the HMM regime on the forecast date, per `fit`: `n_days`, `qlike`.
+
 ### `fact_dq`: one row per run, instrument and rule
 
 | Column | Type | Description |
