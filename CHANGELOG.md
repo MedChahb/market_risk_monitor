@@ -2,7 +2,7 @@
 
 Changes to the Power BI report in `powerbi/`, newest first.
 
-## Unreleased
+## v1.0 (2026-10-22)
 
 - 2026-10-22: Risk page headline on the full width with the slicers below it, exact amounts in the key figures, no exception count before 2012; empty Diebold-Mariano p-values left uncoloured; wider quality grid for the eleven series; spacing on the Read me page; the GJR parametric method named as in the notebooks.
 - 2026-10-22: Risk page (latest VaR and ES, 250-day exceptions and traffic light, daily P&L against the VaR, backtest of five methods, exceptions by year), Models page (forecast against realised volatility, QLIKE, Diebold-Mariano against HAR) and Read me page; 17 new measures; Risk is the landing page.
