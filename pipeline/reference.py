@@ -27,30 +27,63 @@ MODELS = [
     {
         "model_id": "ewma",
         "name": "EWMA",
+        "target": "volatility",
         "description": "RiskMetrics exponentially weighted variance, lambda 0.94",
     },
-    {"model_id": "garch", "name": "GARCH(1,1)", "description": "GARCH(1,1) with Student-t innovations"},
+    {
+        "model_id": "garch",
+        "name": "GARCH(1,1)",
+        "target": "volatility",
+        "description": "GARCH(1,1) with Student-t innovations",
+    },
     {
         "model_id": "gjr",
         "name": "GJR-GARCH(1,1)",
+        "target": "volatility",
         "description": "GARCH(1,1) with a leverage term (Glosten, Jagannathan and Runkle) and Student-t innovations",
     },
     {
         "model_id": "har",
         "name": "HAR",
+        "target": "volatility",
         "description": "Corsi regression on the daily, weekly and monthly mean of squared returns",
     },
     {
         "model_id": "har_range",
         "name": "HAR (range)",
+        "target": "volatility",
         "description": "HAR on range-based variances from open, high, low and close (Garman-Klass, Yang-Zhang)",
     },
     {
         "model_id": "xgboost",
         "name": "XGBoost",
+        "target": "volatility",
         "description": "Gradient-boosted trees on HAR and range features, curve slopes and VIX when available",
     },
-    {"model_id": "gru", "name": "GRU", "description": "Recurrent network on 22-day sequences"},
+    {
+        "model_id": "gru",
+        "name": "GRU",
+        "target": "volatility",
+        "description": "Recurrent network on 22-day sequences",
+    },
+    {
+        "model_id": "adv20",
+        "name": "20-day ADV",
+        "target": "volume",
+        "description": "Average daily volume of the last 20 sessions, the desks' reference",
+    },
+    {
+        "model_id": "har_volume",
+        "name": "HAR (log volume)",
+        "target": "volume",
+        "description": "Regression on the daily, weekly and monthly mean of log volume",
+    },
+    {
+        "model_id": "xgboost_volume",
+        "name": "XGBoost (log volume)",
+        "target": "volume",
+        "description": "Gradient-boosted trees on the HAR terms, calendar flags, EWMA volatility and VIX",
+    },
 ]
 
 METHODS = [
