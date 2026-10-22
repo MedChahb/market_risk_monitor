@@ -15,6 +15,10 @@ DQ_DIR = DATA_DIR / "dq"
 GOLD_DIR = DATA_DIR / "gold"
 FORECAST_DIR = DATA_DIR / "forecasts"
 MONITORING_DIR = DATA_DIR / "monitoring"
+RUNS_FILE = MONITORING_DIR / "runs.parquet"
+DRIFT_FILE = MONITORING_DIR / "drift.parquet"
+MODEL_MONITOR_FILE = MONITORING_DIR / "model_monitor.parquet"
+PROMOTIONS_FILE = MONITORING_DIR / "promotions.parquet"
 SQL_DIR = ROOT / "sql"
 MLFLOW_URI = f"sqlite:///{DATA_DIR / 'mlflow.db'}"  # local tracking database and model registry
 
