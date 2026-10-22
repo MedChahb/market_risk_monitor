@@ -1,0 +1,158 @@
+{
+  "name": "Market Risk Monitor",
+  "dataColors": [
+    "#2a78d6",
+    "#eb6834",
+    "#1baf7a",
+    "#eda100",
+    "#e87ba4",
+    "#008300",
+    "#6250d6",
+    "#e34948"
+  ],
+  "background": "#FFFFFF",
+  "foreground": "#0b0b0b",
+  "tableAccent": "#2a78d6",
+  "good": "#0ca30c",
+  "neutral": "#fab219",
+  "bad": "#d03b3b",
+  "minimum": "#2a78d6",
+  "center": "#f0efec",
+  "maximum": "#e34948",
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "color": "#0b0b0b",
+      "fontSize": 14
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "color": "#0b0b0b",
+      "fontSize": 14
+    },
+    "callout": {
+      "fontFace": "Segoe UI",
+      "color": "#0b0b0b",
+      "fontSize": 28
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "color": "#52514e",
+      "fontSize": 12
+    }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "title": [
+          {
+            "show": true,
+            "alignment": "left",
+            "fontSize": 14,
+            "fontColor": {
+              "solid": {
+                "color": "#0b0b0b"
+              }
+            }
+          }
+        ],
+        "background": [
+          {
+            "color": {
+              "solid": {
+                "color": "#FFFFFF"
+              }
+            },
+            "transparency": 0
+          }
+        ],
+        "border": [
+          {
+            "show": false
+          }
+        ],
+        "dropShadow": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "page": {
+      "*": {
+        "background": [
+          {
+            "color": {
+              "solid": {
+                "color": "#fcfcfb"
+              }
+            },
+            "transparency": 0
+          }
+        ]
+      }
+    },
+    "tableEx": {
+      "*": {
+        "values": [
+          {
+            "fontSize": 12
+          }
+        ],
+        "columnHeaders": [
+          {
+            "fontSize": 12
+          }
+        ],
+        "grid": [
+          {
+            "textSize": 12
+          }
+        ]
+      }
+    },
+    "pivotTable": {
+      "*": {
+        "values": [
+          {
+            "fontSize": 12
+          }
+        ],
+        "columnHeaders": [
+          {
+            "fontSize": 12
+          }
+        ],
+        "grid": [
+          {
+            "textSize": 12
+          }
+        ],
+        "rowHeaders": [
+          {
+            "fontSize": 12
+          }
+        ]
+      }
+    },
+    "slicer": {
+      "*": {
+        "header": [
+          {
+            "textSize": 12
+          }
+        ],
+        "items": [
+          {
+            "textSize": 12
+          }
+        ],
+        "date": [
+          {
+            "textSize": 12
+          }
+        ]
+      }
+    }
+  }
+}

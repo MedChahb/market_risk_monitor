@@ -1,0 +1,83 @@
+table fact_correlation
+	lineageTag: 1490a398-f852-5aba-bdec-176702a695ed
+
+	column Period
+		dataType: string
+		lineageTag: 0d974ce7-19ad-5a9d-a16c-ad311b113911
+		summarizeBy: none
+		sourceColumn: period
+		sortByColumn: period_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column period_order
+		dataType: int64
+		isHidden
+		lineageTag: 03463000-e00f-5e09-aabb-64cfc20220d9
+		summarizeBy: none
+		sourceColumn: period_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column instrument_a
+		dataType: string
+		isHidden
+		lineageTag: cffdda67-b69d-5727-b763-4e57365ce2e9
+		summarizeBy: none
+		sourceColumn: instrument_a
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Instrument A'
+		dataType: string
+		lineageTag: 5341b467-40ff-5d18-97fa-f10e9ae94f5f
+		summarizeBy: none
+		sourceColumn: name_a
+
+		annotation SummarizationSetBy = Automatic
+
+	column instrument_b
+		dataType: string
+		isHidden
+		lineageTag: aeabaa8d-92d9-59dd-8d1e-1dd7425b63ee
+		summarizeBy: none
+		sourceColumn: instrument_b
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Instrument B'
+		dataType: string
+		lineageTag: 05d0f20b-7d9a-54db-9c00-9d88cd436b08
+		summarizeBy: none
+		sourceColumn: name_b
+
+		annotation SummarizationSetBy = Automatic
+
+	column correlation
+		dataType: double
+		isHidden
+		lineageTag: 9976d4f2-d4c9-51b6-870b-84452609588f
+		summarizeBy: none
+		sourceColumn: correlation
+
+		annotation SummarizationSetBy = Automatic
+
+	column n_days
+		dataType: int64
+		isHidden
+		lineageTag: 3828fb22-658a-5ec3-a555-b24bdfb00015
+		summarizeBy: none
+		sourceColumn: n_days
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_correlation = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_correlation.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"period", type text}, {"period_order", Int64.Type}, {"instrument_a", type text}, {"name_a", type text}, {"instrument_b", type text}, {"name_b", type text}, {"correlation", type number}, {"n_days", Int64.Type}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

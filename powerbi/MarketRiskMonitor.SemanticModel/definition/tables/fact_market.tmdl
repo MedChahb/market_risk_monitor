@@ -1,0 +1,115 @@
+table fact_market
+	lineageTag: 8302f204-7547-5967-9ddf-52d8af354d6a
+
+	column date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: bf33a186-373f-52ba-b445-222acf7ba2f9
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column instrument_id
+		dataType: string
+		isHidden
+		lineageTag: 01be8f44-25a4-57f2-8ed7-5cf8c2e3e4c3
+		summarizeBy: none
+		sourceColumn: instrument_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column level
+		dataType: double
+		isHidden
+		lineageTag: a88b8ece-8152-5ffc-a596-c3822728ffd5
+		summarizeBy: none
+		sourceColumn: level
+
+		annotation SummarizationSetBy = Automatic
+
+	column index_100
+		dataType: double
+		isHidden
+		lineageTag: 25bce890-1b07-5e88-b3cf-cf31e19c568b
+		summarizeBy: none
+		sourceColumn: index_100
+
+		annotation SummarizationSetBy = Automatic
+
+	column daily_return
+		dataType: double
+		isHidden
+		lineageTag: 6fc54ab2-3005-5c4a-88a8-829083585124
+		summarizeBy: none
+		sourceColumn: daily_return
+
+		annotation SummarizationSetBy = Automatic
+
+	column change_bp
+		dataType: double
+		isHidden
+		lineageTag: f6be8daa-7d09-54b9-99c5-810a8a744ba3
+		summarizeBy: none
+		sourceColumn: change_bp
+
+		annotation SummarizationSetBy = Automatic
+
+	column vol_22d
+		dataType: double
+		isHidden
+		lineageTag: 4fd7485a-872d-5b3a-9cd8-b34987062e86
+		summarizeBy: none
+		sourceColumn: vol_22d
+
+		annotation SummarizationSetBy = Automatic
+
+	column vol_22d_bp
+		dataType: double
+		isHidden
+		lineageTag: 27394420-bcd5-5459-9a01-eb04de78faa0
+		summarizeBy: none
+		sourceColumn: vol_22d_bp
+
+		annotation SummarizationSetBy = Automatic
+
+	column drawdown
+		dataType: double
+		isHidden
+		lineageTag: 5dd3e822-d9d6-5e85-9c06-5a532328b671
+		summarizeBy: none
+		sourceColumn: drawdown
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_filled
+		dataType: boolean
+		isHidden
+		lineageTag: caa1664b-0ae4-5696-8c58-0afa02131d0d
+		summarizeBy: none
+		sourceColumn: is_filled
+
+		annotation SummarizationSetBy = Automatic
+
+	column fill_reason
+		dataType: string
+		isHidden
+		lineageTag: 0a3bfd7c-f81e-539a-9079-6e85ce734df0
+		summarizeBy: none
+		sourceColumn: fill_reason
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_market = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_market.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"date", type date}, {"instrument_id", type text}, {"level", type number}, {"index_100", type number}, {"daily_return", type number}, {"change_bp", type number}, {"vol_22d", type number}, {"vol_22d_bp", type number}, {"drawdown", type number}, {"is_filled", type logical}, {"fill_reason", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

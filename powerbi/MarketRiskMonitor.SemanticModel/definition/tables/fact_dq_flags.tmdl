@@ -1,0 +1,100 @@
+table fact_dq_flags
+	lineageTag: e5165ec1-3941-537c-96d5-27b229c9ee73
+
+	column run_id
+		dataType: string
+		isHidden
+		lineageTag: f702899e-97d9-5262-8403-9a11d5353a97
+		summarizeBy: none
+		sourceColumn: run_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Observation Date'
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 0fc468c4-3bf3-5427-bfe7-4375038fc1f9
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column source
+		dataType: string
+		isHidden
+		lineageTag: d55f39c9-db99-56bb-8b01-1b1f0f506ab4
+		summarizeBy: none
+		sourceColumn: source
+
+		annotation SummarizationSetBy = Automatic
+
+	column instrument
+		dataType: string
+		isHidden
+		lineageTag: 7c97b0ed-a14b-58b3-a72d-d6a11a279ad2
+		summarizeBy: none
+		sourceColumn: instrument
+
+		annotation SummarizationSetBy = Automatic
+
+	column Field
+		dataType: string
+		lineageTag: a8faef11-af8f-5776-aded-8875cf3e1542
+		summarizeBy: none
+		sourceColumn: field
+
+		annotation SummarizationSetBy = Automatic
+
+	column Rule
+		dataType: string
+		lineageTag: 5453b08a-1165-5b68-8380-becb52675118
+		summarizeBy: none
+		sourceColumn: rule
+
+		annotation SummarizationSetBy = Automatic
+
+	column Severity
+		dataType: string
+		lineageTag: 5c9bd2fb-d528-5877-9a20-e60f6999bd8a
+		summarizeBy: none
+		sourceColumn: severity
+
+		annotation SummarizationSetBy = Automatic
+
+	column Value
+		dataType: double
+		formatString: #,##0.0000
+		lineageTag: 70515245-c0c8-58a0-bc9d-c5b0a2cc4f6a
+		summarizeBy: none
+		sourceColumn: value
+
+		annotation SummarizationSetBy = Automatic
+
+	column Detail
+		dataType: string
+		lineageTag: 02edb976-329b-56ab-b2eb-e9c5a62434a4
+		summarizeBy: none
+		sourceColumn: detail
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Latest Run'
+		dataType: boolean
+		lineageTag: 56b25a87-6698-53c4-afaf-8defd43b8a6b
+		summarizeBy: none
+		sourceColumn: is_latest_run
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_dq_flags = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_dq_flags.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"run_id", type text}, {"date", type date}, {"source", type text}, {"instrument", type text}, {"field", type text}, {"rule", type text}, {"severity", type text}, {"value", type number}, {"detail", type text}, {"is_latest_run", type logical}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

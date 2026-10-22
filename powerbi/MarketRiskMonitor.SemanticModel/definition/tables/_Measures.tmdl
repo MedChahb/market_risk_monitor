@@ -1,0 +1,250 @@
+table _Measures
+	lineageTag: 387010c8-e220-5462-affa-c677243c8d65
+
+	/// Price-like series rebased to 100 on the first date visible in the current selection. Blank for rates and for several instruments at once.
+	measure 'Index (rebased to 100)' =
+			VAR FirstVisibleDate =
+			    CALCULATE ( MIN ( fact_market[date] ), ALLSELECTED ( dim_date ) )
+			VAR BaseLevel =
+			    CALCULATE ( SUM ( fact_market[index_100] ), REMOVEFILTERS ( dim_date ), dim_date[Date] = FirstVisibleDate )
+			RETURN
+			    IF ( HASONEVALUE ( dim_instrument[instrument_id] ), DIVIDE ( SUM ( fact_market[index_100] ), BaseLevel ) * 100 )
+		formatString: #,##0.0
+		displayFolder: Market
+		lineageTag: 012c591b-962f-5c2f-8abd-aed75f766b75
+
+	/// Annualised volatility of the last 22 observed daily returns (equities, gold, FX). One instrument at a time.
+	measure 'Volatility 22d' =
+			IF ( HASONEVALUE ( dim_instrument[instrument_id] ), AVERAGE ( fact_market[vol_22d] ) )
+		formatString: 0.0%
+		displayFolder: Market
+		lineageTag: 187b5049-cb5a-5401-9473-7d68294d3180
+
+	/// Rates: annualised volatility of the last 22 observed daily yield changes, in basis points.
+	measure 'Volatility 22d (bp)' =
+			IF ( HASONEVALUE ( dim_instrument[instrument_id] ), AVERAGE ( fact_market[vol_22d_bp] ) )
+		formatString: #,##0
+		displayFolder: Market
+		lineageTag: e6fc5225-3c74-5396-9f10-989bc4bf4500
+
+	/// Price change between the first and the last selected date, for price-like series. One instrument at a time.
+	measure Return =
+			VAR FirstSelectedDate =
+			    CALCULATE ( MIN ( fact_market[date] ), ALLSELECTED ( dim_date ) )
+			VAR LastSelectedDate =
+			    CALCULATE ( MAX ( fact_market[date] ), ALLSELECTED ( dim_date ) )
+			VAR FirstLevel =
+			    CALCULATE ( SUM ( fact_market[index_100] ), REMOVEFILTERS ( dim_date ), dim_date[Date] = FirstSelectedDate )
+			VAR LastLevel =
+			    CALCULATE ( SUM ( fact_market[index_100] ), REMOVEFILTERS ( dim_date ), dim_date[Date] = LastSelectedDate )
+			VAR Ratio =
+			    DIVIDE ( LastLevel, FirstLevel )
+			RETURN
+			    IF ( HASONEVALUE ( dim_instrument[instrument_id] ) && NOT ISBLANK ( Ratio ), Ratio - 1 )
+		formatString: 0.0%
+		displayFolder: Market
+		lineageTag: 1814e116-0aad-52ff-b7f6-08a9505e5fdf
+
+	/// Standard deviation of the daily returns observed over the selected dates, times the square root of 252. Filled days are left out.
+	measure 'Volatility (annualised)' =
+			VAR Observed =
+			    CALCULATETABLE (
+			        fact_market,
+			        fact_market[is_filled] = FALSE (),
+			        NOT ISBLANK ( fact_market[daily_return] )
+			    )
+			RETURN
+			    IF (
+			        HASONEVALUE ( dim_instrument[instrument_id] ) && COUNTROWS ( Observed ) > 1,
+			        STDEVX.S ( Observed, fact_market[daily_return] ) * SQRT ( 252 )
+			    )
+		formatString: 0.0%
+		displayFolder: Market
+		lineageTag: fe72fec7-800d-5a16-b994-4c3de3e593cd
+
+	/// 22-day volatility on the last selected date.
+	measure 'Volatility 22d (latest)' =
+			VAR LastSelectedDate =
+			    CALCULATE ( MAX ( fact_market[date] ), ALLSELECTED ( dim_date ) )
+			RETURN
+			    IF (
+			        HASONEVALUE ( dim_instrument[instrument_id] ),
+			        CALCULATE ( AVERAGE ( fact_market[vol_22d] ), REMOVEFILTERS ( dim_date ), dim_date[Date] = LastSelectedDate )
+			    )
+		formatString: 0.0%
+		displayFolder: Market
+		lineageTag: 8d63bdab-39ab-534f-8080-3cda3d65d4ab
+
+	/// Latest 22-day volatility divided by its average over the selected dates; below 1 means calmer than usual.
+	measure 'Volatility 22d vs Average' =
+			DIVIDE ( [Volatility 22d (latest)], [Volatility 22d] )
+		formatString: 0.00
+		displayFolder: Market
+		lineageTag: 43456f39-33dd-5727-9f71-8fb5f7cc629d
+
+	/// Lowest daily return over the selected dates, filled days left out.
+	measure 'Worst Day' =
+			IF (
+			    HASONEVALUE ( dim_instrument[instrument_id] ),
+			    CALCULATE ( MIN ( fact_market[daily_return] ), fact_market[is_filled] = FALSE () )
+			)
+		formatString: 0.0%
+		displayFolder: Market
+		lineageTag: c23f82e8-f86b-5bf6-a9c4-c20dac7aad94
+
+	/// Deepest fall below the previous high within the selected dates. Highs are counted from the first date of the history (January 2008).
+	measure 'Max Drawdown' =
+			IF ( HASONEVALUE ( dim_instrument[instrument_id] ), MIN ( fact_market[drawdown] ) )
+		formatString: 0.0%
+		displayFolder: Market
+		lineageTag: 852a5a47-9630-5a0f-b8e8-691d5303b346
+
+	/// Rates: published level in percent (yields) or percentage points (spreads). One instrument at a time.
+	measure 'Rate Level (%)' =
+			IF (
+			    HASONEVALUE ( dim_instrument[instrument_id] ),
+			    CALCULATE ( AVERAGE ( fact_market[level] ), dim_instrument[Asset Class] = "rates" )
+			)
+		formatString: 0.00
+		displayFolder: Market
+		lineageTag: 501c0cfb-cbe5-5d31-a45b-f2ff54bcc46a
+
+	/// Correlation of daily moves (returns, or yield changes for rates) for one period. A positive value with the AAA yield means the bond price moves the other way.
+	measure Correlation =
+			IF ( HASONEVALUE ( fact_correlation[Period] ), AVERAGE ( fact_correlation[correlation] ) )
+		formatString: 0.00
+		displayFolder: Market
+		lineageTag: f6a5b24b-0c40-5b0c-8ebd-ba4ad56f3238
+
+	/// Correlation of daily moves over the last 250 reporting days, whatever period is selected.
+	measure 'Correlation (last 250 days)' =
+			CALCULATE ( AVERAGE ( fact_correlation[correlation] ), fact_correlation[Period] = "Last 250 days" )
+		formatString: 0.00
+		displayFolder: Market
+		lineageTag: f8b1a9bf-1532-591c-8fa7-06a14d57ea0b
+
+	/// Correlation of daily moves over the whole history, whatever period is selected.
+	measure 'Correlation (full history)' =
+			CALCULATE ( AVERAGE ( fact_correlation[correlation] ), fact_correlation[Period] = "Full history" )
+		formatString: 0.00
+		displayFolder: Market
+		lineageTag: 657c063f-67e4-5fe0-88a9-6060d3ccd737
+
+	/// Days when both instruments of the pair moved, in the selected period.
+	measure 'Common Days' =
+			IF ( HASONEVALUE ( fact_correlation[Period] ), SUM ( fact_correlation[n_days] ) )
+		formatString: #,##0
+		displayFolder: Market
+		lineageTag: 91dd4e56-f40a-5fa0-a8c9-aee1e4c22361
+
+	/// Most recent date with market data in the current selection.
+	measure 'Last Market Date' =
+			MAX ( fact_market[date] )
+		formatString: dd mmm yyyy
+		displayFolder: Market
+		lineageTag: 2851b102-31c4-56e0-9b57-6c4c1d2f9a61
+
+	/// Rules evaluated by the latest quality run, one per instrument and rule.
+	measure 'Checks (latest run)' =
+			CALCULATE ( COUNTROWS ( fact_dq ), fact_dq[Latest Run] = TRUE () )
+		formatString: #,##0
+		displayFolder: Data quality
+		lineageTag: 97669129-9535-538f-9660-62344a15a7a6
+
+	/// Share of the latest run's checks that found no failing row.
+	measure 'Pass Rate (latest run)' =
+			DIVIDE (
+			    CALCULATE ( COUNTROWS ( fact_dq ), fact_dq[Latest Run] = TRUE (), fact_dq[Passed] = TRUE () ) + 0,
+			    [Checks (latest run)]
+			)
+		formatString: 0.0%
+		displayFolder: Data quality
+		lineageTag: a456dcc3-c359-558c-a8d5-ab5c958e4a7f
+
+	/// Checks of the latest run that found at least one failing row.
+	measure 'Failed Rules (latest run)' =
+			CALCULATE ( COUNTROWS ( fact_dq ), fact_dq[Latest Run] = TRUE (), fact_dq[Passed] = FALSE () )
+		formatString: #,##0
+		displayFolder: Data quality
+		lineageTag: ea8dcfcf-d3f4-57f7-a9e5-94bdf9cca694
+
+	/// Critical checks failed by the latest run; any value above zero means the pipeline stopped.
+	measure 'Critical Failures (latest run)' =
+			CALCULATE (
+			    COUNTROWS ( fact_dq ),
+			    fact_dq[Latest Run] = TRUE (),
+			    fact_dq[Passed] = FALSE (),
+			    fact_dq[Severity] = "critical"
+			) + 0
+		formatString: #,##0
+		displayFolder: Data quality
+		lineageTag: 72b72a04-2ab4-5231-af11-3d9dcf230ded
+
+	/// Warning checks failed by the latest run; they are reported and do not stop the pipeline.
+	measure 'Warnings (latest run)' =
+			CALCULATE (
+			    COUNTROWS ( fact_dq ),
+			    fact_dq[Latest Run] = TRUE (),
+			    fact_dq[Passed] = FALSE (),
+			    fact_dq[Severity] = "warning"
+			) + 0
+		formatString: #,##0
+		displayFolder: Data quality
+		lineageTag: 6748dc9f-c109-5d48-8fef-0532e0107d83
+
+	/// Observations flagged by the latest run, all rules together.
+	measure 'Flagged Rows (latest run)' =
+			CALCULATE ( SUM ( fact_dq[Failed Rows] ), fact_dq[Latest Run] = TRUE () )
+		formatString: #,##0
+		displayFolder: Data quality
+		lineageTag: e2c2bd25-3e90-509b-8cf0-83fd205282d1
+
+	/// Checks that found at least one failing row, across the runs in the current selection.
+	measure 'Failed Rules' =
+			CALCULATE ( COUNTROWS ( fact_dq ), fact_dq[Passed] = FALSE () )
+		formatString: #,##0
+		displayFolder: Data quality
+		lineageTag: 86783044-9881-566f-93df-9185f6c85cda
+
+	/// Share of checks that found no failing row, across the runs in the current selection.
+	measure 'Pass Rate' =
+			DIVIDE ( CALCULATE ( COUNTROWS ( fact_dq ), fact_dq[Passed] = TRUE () ) + 0, COUNTROWS ( fact_dq ) )
+		formatString: 0.0%
+		displayFolder: Data quality
+		lineageTag: 7fc86c31-9cc1-5140-8b41-3d461c92e4c0
+
+	/// Series whose last observation is older than the last expected session, at the latest run.
+	measure 'Series Late (latest run)' =
+			CALCULATE (
+			    COUNTROWS ( fact_freshness ),
+			    fact_freshness[Latest Run] = TRUE (),
+			    fact_freshness[Is Late] = TRUE ()
+			) + 0
+		formatString: #,##0
+		displayFolder: Data quality
+		lineageTag: ceb522e1-c355-5724-a42b-148c862f2190
+
+	/// Sessions missing at the end of a series at the latest run; blank when the source delivered nothing.
+	measure 'Sessions Late (latest run)' =
+			CALCULATE ( MAX ( fact_freshness[Sessions Late] ), fact_freshness[Latest Run] = TRUE () )
+		formatString: #,##0
+		displayFolder: Data quality
+		lineageTag: bc492051-af2b-5b91-bbb0-121678a4e8e2
+
+	/// Start time of the latest quality run, in UTC.
+	measure 'Last Quality Run (UTC)' =
+			MAX ( fact_dq[Run At (UTC)] )
+		formatString: dd mmm yyyy hh:nn
+		displayFolder: Data quality
+		lineageTag: 4cd0fbc8-e90a-5d9e-85fa-514ff978e8f1
+
+	column Value
+		isHidden
+		lineageTag: 0db324dc-f805-5ee1-b468-98e61f561b4d
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Value]
+
+	partition _Measures = calculated
+		mode: import
+		source = {1}

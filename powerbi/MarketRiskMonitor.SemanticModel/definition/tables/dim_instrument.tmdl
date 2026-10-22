@@ -1,0 +1,113 @@
+table dim_instrument
+	lineageTag: e7023207-b67f-5193-b092-28d32356c231
+
+	column instrument_id
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: 257d9223-491c-5882-8758-48dea12f051b
+		summarizeBy: none
+		sourceColumn: instrument_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Instrument
+		dataType: string
+		lineageTag: e38be451-671c-5c98-bc96-51dfdd59e8b7
+		summarizeBy: none
+		sourceColumn: short_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column Description
+		dataType: string
+		lineageTag: 1012626e-2166-5fa6-af1d-9f0f9b47653d
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Asset Class'
+		dataType: string
+		lineageTag: e36eff18-7392-5c09-b779-c8d2ff79328d
+		summarizeBy: none
+		sourceColumn: asset_class
+
+		annotation SummarizationSetBy = Automatic
+
+	column Currency
+		dataType: string
+		lineageTag: fc0a69b5-bc66-50bd-af48-29b924a39b01
+		summarizeBy: none
+		sourceColumn: currency
+
+		annotation SummarizationSetBy = Automatic
+
+	column Unit
+		dataType: string
+		lineageTag: 9778b023-8f26-54af-ab8e-23a5398871a4
+		summarizeBy: none
+		sourceColumn: unit
+
+		annotation SummarizationSetBy = Automatic
+
+	column Role
+		dataType: string
+		lineageTag: 85fcfdf9-1bff-57b1-a26e-b947571aaa4f
+		summarizeBy: none
+		sourceColumn: role
+
+		annotation SummarizationSetBy = Automatic
+
+	column source_id
+		dataType: string
+		isHidden
+		lineageTag: 4301f536-05e8-5bb1-a33e-90218e54753d
+		summarizeBy: none
+		sourceColumn: source_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Source Key'
+		dataType: string
+		lineageTag: 9a2cfb2c-8367-5a11-87f9-5130880106b4
+		summarizeBy: none
+		sourceColumn: source_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column Calendar
+		dataType: string
+		lineageTag: e20e2552-b2ee-52e9-b8aa-81de88a05cc9
+		summarizeBy: none
+		sourceColumn: calendar
+
+		annotation SummarizationSetBy = Automatic
+
+	column Licence
+		dataType: string
+		lineageTag: 6f16a87c-d520-512b-8cea-c6ec204eb986
+		summarizeBy: none
+		sourceColumn: licence
+
+		annotation SummarizationSetBy = Automatic
+
+	column publish_level
+		dataType: boolean
+		isHidden
+		lineageTag: faeea006-f77b-51c9-9e57-5470b54c69ff
+		summarizeBy: none
+		sourceColumn: publish_level
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_instrument = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\dim_instrument.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"instrument_id", type text}, {"short_name", type text}, {"name", type text}, {"asset_class", type text}, {"currency", type text}, {"unit", type text}, {"role", type text}, {"source_id", type text}, {"source_key", type text}, {"calendar", type text}, {"licence", type text}, {"publish_level", type logical}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

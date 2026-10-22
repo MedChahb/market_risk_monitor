@@ -1,0 +1,5 @@
+expression DataFolder = "\\wsl.localhost\Ubuntu-24.04\home\moha\market-risk-monitor\data\gold" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]
+	lineageTag: a671ae26-856c-518b-9d66-4c640d10dd96
+	queryGroup: Parameters
+
+	annotation PBI_ResultType = Text

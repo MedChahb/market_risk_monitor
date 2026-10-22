@@ -1,0 +1,107 @@
+table fact_freshness
+	lineageTag: a87e3c71-a5d1-536c-bfc9-8e0cf60acbe8
+
+	column run_id
+		dataType: string
+		isHidden
+		lineageTag: 152d8f2e-6965-5154-8720-d80b2e0773ec
+		summarizeBy: none
+		sourceColumn: run_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column run_at
+		dataType: dateTime
+		isHidden
+		lineageTag: 5f1419d5-c21d-5560-98f4-acdf452ca13d
+		summarizeBy: none
+		sourceColumn: run_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: 1e088ded-308f-545a-bfcc-56fc4fd38c14
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column source
+		dataType: string
+		isHidden
+		lineageTag: 1f0e5e3f-4bca-5c39-8eeb-216d5a1574db
+		summarizeBy: none
+		sourceColumn: source
+
+		annotation SummarizationSetBy = Automatic
+
+	column instrument
+		dataType: string
+		isHidden
+		lineageTag: 5b77cafd-32f6-5b2d-8643-d373599b7bcb
+		summarizeBy: none
+		sourceColumn: instrument
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Last Date'
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 3a091386-cfd0-5c2a-91f0-a6f051e9ecf4
+		summarizeBy: none
+		sourceColumn: last_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Expected Date'
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 2c0f911e-92b7-50a3-953d-cb8242c160db
+		summarizeBy: none
+		sourceColumn: expected_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Sessions Late'
+		dataType: int64
+		lineageTag: 34f1c351-4039-5d54-aa78-4af120b5c3e3
+		summarizeBy: none
+		sourceColumn: sessions_late
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Is Late'
+		dataType: boolean
+		lineageTag: 5c2732a9-ffa2-5513-80fb-656cb7a8d4dc
+		summarizeBy: none
+		sourceColumn: is_late
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Latest Run'
+		dataType: boolean
+		lineageTag: a20dd31b-91f5-53e3-b6b5-84175fa13290
+		summarizeBy: none
+		sourceColumn: is_latest_run
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_freshness = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_freshness.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"run_id", type text}, {"run_at", type datetime}, {"date", type date}, {"source", type text}, {"instrument", type text}, {"last_date", type date}, {"expected_date", type date}, {"sessions_late", Int64.Type}, {"is_late", type logical}, {"is_latest_run", type logical}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

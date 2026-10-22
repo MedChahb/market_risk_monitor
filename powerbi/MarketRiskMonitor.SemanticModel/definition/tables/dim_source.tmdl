@@ -1,0 +1,48 @@
+table dim_source
+	lineageTag: b568fb7b-6e9e-509e-b799-1bf67efa8982
+
+	column source_id
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: 4f4e3fc7-56b3-57d1-8d05-bd37b44bac0d
+		summarizeBy: none
+		sourceColumn: source_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Source
+		dataType: string
+		lineageTag: 83497153-c47f-59d6-8164-c3b0af291c10
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column URL
+		dataType: string
+		dataCategory: WebUrl
+		lineageTag: b020d26c-601e-528d-8963-339101e03a85
+		summarizeBy: none
+		sourceColumn: url
+
+		annotation SummarizationSetBy = Automatic
+
+	column Licence
+		dataType: string
+		lineageTag: a07fd84d-6af4-5896-8fc6-ed934dd74cc2
+		summarizeBy: none
+		sourceColumn: licence
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_source = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\dim_source.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"source_id", type text}, {"name", type text}, {"url", type text}, {"licence", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
