@@ -10,15 +10,18 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
-# MLflow local runs
+# MLflow tracking database and model registry, local runs
 mlruns/
-mlflow.db
+data/mlflow.db
 
 # Model forecasts (loaded to the gold tables by publish)
 data/forecasts/
 
 # Data quality results (loaded to the gold tables in Step 4)
 data/dq/
+
+# Run history, drift and promotion decisions (loaded to the gold tables by publish)
+data/monitoring/
 
 # Power BI binaries: attached to GitHub releases, never committed (the PBIP project is the source)
 *.pbix
