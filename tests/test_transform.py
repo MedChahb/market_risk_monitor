@@ -65,6 +65,12 @@ def test_dim_date_covers_full_years_with_a_trading_day_index():
     assert pd.isna(idx[pd.Timestamp("2025-01-01")]) and pd.isna(idx[pd.Timestamp("2026-05-11")])
 
 
+def test_dim_date_reaches_into_next_year_when_the_next_session_does():
+    trading = calendars.reporting_days(pd.Timestamp("2026-01-02"), pd.Timestamp("2026-12-30"))
+    dim = transform.build_dim_date(trading, date(2026, 12, 31))
+    assert dim["date"].max() == pd.Timestamp("2027-12-31")
+
+
 def test_month_end_is_the_last_trading_day_of_each_month():
     trading = calendars.reporting_days(pd.Timestamp("2025-01-02"), pd.Timestamp("2026-05-08"))
     dim = transform.build_dim_date(trading, date(2026, 5, 11))
