@@ -4,7 +4,7 @@ Market risk monitoring of a fictional multi-asset trading book in euros (equitie
 
 The goal: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall, and backtests them, with the results reported in Power BI.
 
-**Status:** work in progress. Ingestion, the data quality gate, the silver/gold storage, the book P&L and a first Power BI report are in place; this README grows as each part is built.
+**Status:** work in progress. Ingestion, the data quality gate, the silver/gold storage, the book P&L, volatility forecasts and a first Power BI report are in place; this README grows as each part is built.
 
 ## Data lineage
 
@@ -20,6 +20,8 @@ flowchart LR
     S --> G[(PostgreSQL gold<br/>star schema)]
     S --> B[book P&L<br/>6 positions, EUR]
     B --> G
+    B --> V[volatility models<br/>7 models, walk-forward]
+    V --> G
     DQ --> G
     G --> P[gold Parquet<br/>data/gold]
     P --> BI[Power BI report]
@@ -43,6 +45,19 @@ A fictional 10 M€ book with constant notionals (daily rebalancing), valued in 
 | USD cash | 1 M€ | USD/EUR |
 
 USD positions are converted at the ECB reference rate. The P&L is hypothetical (fixed positions revalued with market moves). Over 2008-2026 the book's annualised P&L volatility is 1.11 M€, a third below the sum of the stand-alone positions; its worst day is 12 March 2020 (−687 k€, about ten daily standard deviations). Analysis in [`notebooks/01_book_pnl.ipynb`](notebooks/01_book_pnl.ipynb).
+
+## Volatility forecasting
+
+Seven models forecast the variance of each position and of the book over the next five trading days ([`pipeline/vol_models.py`](pipeline/vol_models.py), analysis in [`notebooks/02_volatility.ipynb`](notebooks/02_volatility.ipynb)): EWMA, GARCH(1,1), GJR-GARCH(1,1), HAR, HAR on range-based variance (open, high, low and close), XGBoost and a GRU. They are trained on 2008-2017 and refitted every month from 2018 on an expanding window, with purged training rows, then scored with QLIKE and compared with HAR by Diebold-Mariano tests with a Newey-West variance over 2,269 out-of-sample days.
+
+| Book, 2018-2026 | EWMA | GARCH | GJR | HAR | XGBoost | GRU |
+|---|---|---|---|---|---|---|
+| QLIKE (lower is better) | 0.453 | 0.417 | 0.399 | 0.427 | 0.434 | 0.397 |
+| Diebold-Mariano p-value against HAR | 0.090 (worse) | 0.262 | 0.080 | | 0.617 (worse) | 0.041 |
+
+GJR-GARCH is the champion volatility forecast for the VaR: lowest QLIKE on four of the six positions, significantly better than HAR on six of the seven series and the most accurate in the 2020 crash. The GRU is marginally better on the book but indistinguishable from GJR (p = 0.91), worse than HAR on three positions and far slower to train, so it is kept as challenger. On daily data and without the VIX (FRED offline since 21 October 2026), machine learning beats HAR only on the CAC 40 and the book, in line with Branco, Rubesam and Zevallos (2024).
+
+Main references: Bollerslev (1986), Glosten, Jagannathan and Runkle (1993), Corsi (2009), Garman and Klass (1980), Yang and Zhang (2000), Patton (2011), Diebold and Mariano (1995), Hansen and Lunde (2005), Christensen, Siggaard and Veliyev (2023), Branco, Rubesam and Zevallos (2024); full citations in the notebook.
 
 ## Power BI report
 
@@ -73,6 +88,7 @@ docker compose up -d               # PostgreSQL 16 on 127.0.0.1:5432
 .venv/bin/python -m pipeline.quality --fail-on critical   # quality gate
 .venv/bin/python -m pipeline.transform                    # silver and gold tables in PostgreSQL
 .venv/bin/python -m pipeline.book                         # daily P&L of the book
+.venv/bin/python -m pipeline.vol_models                   # volatility forecasts (the GRU takes about an hour)
 .venv/bin/python -m pipeline.publish                      # gold tables to data/gold/*.parquet
 .venv/bin/pytest                                           # tests (database tests skip without PostgreSQL)
 ```
