@@ -18,7 +18,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Latest quality run: no critical failure; 38 warnings, 19 of them missing trading days or late series'"
+                  "Value": "'Latest quality run: no critical failure; 41 warnings, 19 of them missing trading days or late series'"
                 }
               }
             }
@@ -48,7 +48,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Latest quality run: no critical failure; 38 warnings, 19 of them missing trading days or late series",
+                    "value": "Latest quality run: no critical failure; 41 warnings, 19 of them missing trading days or late series",
                     "textStyle": {
                       "fontWeight": "bold",
                       "fontSize": "18pt",
@@ -60,7 +60,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Run of 22 Oct 2026 12:14 UTC. Rules run after each download; a critical failure stops the pipeline, a warning is reported.",
+                    "value": "Run of 22 Oct 2026 19:36 UTC. Rules run after each download; a critical failure stops the pipeline, a warning is reported.",
                     "textStyle": {
                       "fontSize": "11pt",
                       "color": "#52514e"

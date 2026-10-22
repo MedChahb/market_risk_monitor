@@ -1,0 +1,260 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "anomaly_detector",
+  "position": {
+    "x": 1268,
+    "y": 688,
+    "z": 5000,
+    "width": 620,
+    "height": 360,
+    "tabOrder": 5000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_anomaly_evaluation"
+                    }
+                  },
+                  "Property": "Detector Layer"
+                }
+              },
+              "queryRef": "fact_anomaly_evaluation.Detector Layer",
+              "nativeQueryRef": "Detector Layer"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_anomaly_evaluation"
+                    }
+                  },
+                  "Property": "Precision"
+                }
+              },
+              "queryRef": "fact_anomaly_evaluation.Precision",
+              "nativeQueryRef": "Precision"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_anomaly_evaluation"
+                    }
+                  },
+                  "Property": "Spike"
+                }
+              },
+              "queryRef": "fact_anomaly_evaluation.Spike",
+              "nativeQueryRef": "Spike"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_anomaly_evaluation"
+                    }
+                  },
+                  "Property": "Frozen"
+                }
+              },
+              "queryRef": "fact_anomaly_evaluation.Frozen",
+              "nativeQueryRef": "Frozen"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_anomaly_evaluation"
+                    }
+                  },
+                  "Property": "Decimal ×10"
+                }
+              },
+              "queryRef": "fact_anomaly_evaluation.Decimal ×10",
+              "nativeQueryRef": "Decimal ×10"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_anomaly_evaluation"
+                    }
+                  },
+                  "Property": "Split"
+                }
+              },
+              "queryRef": "fact_anomaly_evaluation.Split",
+              "nativeQueryRef": "Split"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_anomaly_evaluation"
+                    }
+                  },
+                  "Property": "Missing"
+                }
+              },
+              "queryRef": "fact_anomaly_evaluation.Missing",
+              "nativeQueryRef": "Missing"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_anomaly_evaluation"
+                    }
+                  },
+                  "Property": "Roll Jump"
+                }
+              },
+              "queryRef": "fact_anomaly_evaluation.Roll Jump",
+              "nativeQueryRef": "Roll Jump"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "fact_anomaly_evaluation"
+                  }
+                },
+                "Property": "Detector Layer"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ]
+      }
+    },
+    "objects": {
+      "total": [
+        {
+          "properties": {
+            "totals": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "values": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "10.0D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "columnHeaders": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "10.0D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Table: Anomaly detector on injected errors'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Anomaly detector on injected errors'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Share of the 200 injected errors of each type caught, and precision of the alarms.'"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#52514e'"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

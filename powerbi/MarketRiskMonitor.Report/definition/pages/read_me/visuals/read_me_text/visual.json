@@ -145,7 +145,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Data quality: results of the quality gate and freshness of every series.",
+                    "value": "Data quality: the quality gate, the freshness of every series and the anomaly detector.",
                     "textStyle": {
                       "fontSize": "12pt",
                       "color": "#52514e"

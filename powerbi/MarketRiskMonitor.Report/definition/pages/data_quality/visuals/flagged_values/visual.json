@@ -4,10 +4,10 @@
   "position": {
     "x": 32,
     "y": 688,
-    "z": 4000,
-    "width": 880,
+    "z": 3000,
+    "width": 768,
     "height": 360,
-    "tabOrder": 4000
+    "tabOrder": 3000
   },
   "visual": {
     "visualType": "tableEx",
@@ -65,39 +65,11 @@
                       "Entity": "fact_dq_flags"
                     }
                   },
-                  "Property": "Severity"
-                }
-              },
-              "queryRef": "fact_dq_flags.Severity",
-              "nativeQueryRef": "Severity"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "fact_dq_flags"
-                    }
-                  },
                   "Property": "Detail"
                 }
               },
               "queryRef": "fact_dq_flags.Detail",
               "nativeQueryRef": "Detail"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "fact_dq_flags"
-                    }
-                  },
-                  "Property": "Value"
-                }
-              },
-              "queryRef": "fact_dq_flags.Value",
-              "nativeQueryRef": "Value"
             }
           ]
         }
@@ -208,7 +180,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Yahoo values are left empty: the licence does not allow publishing them.'"
+                  "Value": "'Latest first; Yahoo levels are not shown, as the licence forbids publishing them.'"
                 }
               }
             },
