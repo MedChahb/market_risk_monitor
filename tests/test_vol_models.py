@@ -151,12 +151,12 @@ def test_results_compare_each_model_with_har_on_the_same_days():
         ]
     )
     table = vol_models.results_table(forecasts).set_index(["period", "model_id"])
-    assert table.loc[("2018-2026", "perfect"), "qlike"] == pytest.approx(0.0)
+    assert table.loc[("2018-2019", "perfect"), "qlike"] == pytest.approx(0.0)
     assert (
-        table.loc[("2018-2026", "perfect"), "dm_stat_vs_har"] < 0
-        and table.loc[("2018-2026", "perfect"), "dm_p_vs_har"] < 0.01
+        table.loc[("2018-2019", "perfect"), "dm_stat_vs_har"] < 0
+        and table.loc[("2018-2019", "perfect"), "dm_p_vs_har"] < 0.01
     )
-    assert np.isnan(table.loc[("2018-2026", "har"), "dm_p_vs_har"])
+    assert np.isnan(table.loc[("2018-2019", "har"), "dm_p_vs_har"])
 
 
 def gjr_returns(seed: int = 6) -> pd.Series:

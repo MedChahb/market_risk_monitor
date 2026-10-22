@@ -70,6 +70,11 @@ def load_forecasts(conn: Connection, forecast_dir: Path) -> None:
         log.warning("%s not found: gold.fact_forecast left empty", path)
         return
     db.insert(conn, "gold", "fact_forecast", pd.read_parquet(path))
+    evaluation = forecast_dir / "vol_evaluation.parquet"
+    if evaluation.exists():
+        db.insert(conn, "gold", "fact_forecast_evaluation", pd.read_parquet(evaluation))
+    else:
+        log.warning("%s not found: gold.fact_forecast_evaluation left empty", evaluation)
 
 
 def read_for_parquet(conn: Connection, schema: str, table: str, typed_columns: list) -> pd.DataFrame:
