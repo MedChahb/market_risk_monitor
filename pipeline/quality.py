@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import pandera.pandas as pa
 
-from pipeline import calendars, config, files, raw
+from pipeline import anomalies, calendars, config, files, raw
 from pipeline.catalog import CATALOG, EXECUTION, FIELDS, SOURCES, Series, by_source, get, main_field
 
 log = logging.getLogger("quality")
@@ -40,6 +40,7 @@ RULES = {
     "late_data": WARNING,
     "fx_cross_source": WARNING,
     "zero_volume": WARNING,
+    "suspect_tick": WARNING,
 }
 FLAG_COLUMNS = ["date", "instrument", "field", "value", "detail"]
 FACT_DQ_COLUMNS = ["run_id", "date", "source", "instrument", "rule", "severity", "passed", "n_failed"]
@@ -77,6 +78,8 @@ def applies(rule: str, series: Series) -> bool:
         return series.instrument == "EURUSD_YAHOO"
     if rule == "zero_volume":  # only the execution models read volume
         return series.role == EXECUTION
+    if rule == "suspect_tick":
+        return series.source == "yahoo" and series.role != "cross-check"
     return True
 
 
@@ -178,6 +181,20 @@ def check_fx_cross_source(yahoo: pd.Series, ecb: pd.Series, series: Series) -> p
     return flags_from_values(outside["yahoo"], series, details)
 
 
+def check_suspect_ticks(yahoo: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Bad ticks and level shifts found by the anomaly detector, per Yahoo price series."""
+    closes = anomalies.price_series(yahoo)
+    found = anomalies.detect_ticks(closes)
+    return {
+        instrument: flags_from_values(
+            values.reindex(found.loc[found["instrument"] == instrument, "date"]),
+            get(instrument),
+            found.loc[found["instrument"] == instrument, "detail"].tolist(),
+        )
+        for instrument, values in closes.items()
+    }
+
+
 def series_rules(values: pd.Series, series: Series, as_of: date) -> dict[str, pd.DataFrame]:
     """The rules that look at one series over time, keyed by rule name."""
     found = {"late_data": check_late(values, series, as_of)}
@@ -230,6 +247,10 @@ def evaluate(
                     record(source, series.instrument, rule, found[found["instrument"] == series.instrument])
             for rule, found in series_rules(raw.series_values(table, series), series, as_of).items():
                 record(source, series.instrument, rule, found)
+
+    if "yahoo" in valid:
+        for instrument, found in check_suspect_ticks(valid["yahoo"]).items():
+            record("yahoo", instrument, "suspect_tick", found)
 
     if "yahoo" in valid and "ecb" in valid:
         yahoo_fx, ecb_fx = get("EURUSD_YAHOO"), get("EURUSD")
