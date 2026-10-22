@@ -1,0 +1,20 @@
+table 'Order Size Parameter'
+	lineageTag: d758b6ac-c802-5a2b-b8a7-fe781197d4af
+
+	column 'Order Size (% of volume)'
+		dataType: int64
+		formatString: 0\%
+		lineageTag: 93c69154-1c75-56e7-98b4-09ee38b145aa
+		summarizeBy: none
+		sourceColumn: [Value]
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 0
+				}
+
+		annotation SummarizationSetBy = User
+
+	partition 'Order Size Parameter' = calculated
+		mode: import
+		source = GENERATESERIES ( 1, 30, 1 )

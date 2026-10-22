@@ -81,3 +81,39 @@ relationship 516c65d7-65ab-54e0-9df8-3c41a316fd1f
 relationship 06b3ff52-1ce1-5933-93c6-d0a8fbccf748
 	fromColumn: fact_forecast_evaluation.model_id
 	toColumn: dim_model.model_id
+
+relationship a9daa7a2-d978-5456-9428-317a310573f2
+	fromColumn: fact_volume_forecast.date
+	toColumn: dim_date.Date
+
+relationship cdf1af2b-84ef-5f1b-8297-f732d7a0c3e2
+	fromColumn: fact_volume_forecast.instrument_id
+	toColumn: dim_instrument.instrument_id
+
+relationship 70361d19-6ad2-5088-8c37-37d8e8c7c2f2
+	fromColumn: fact_volume_forecast.model_id
+	toColumn: dim_model.model_id
+
+relationship c3deaa9e-6acb-525b-b795-3dcf2a7016e4
+	fromColumn: fact_volume_evaluation.instrument_id
+	toColumn: dim_instrument.instrument_id
+
+relationship a463be60-9312-5b1a-89e8-bb5acba62401
+	fromColumn: fact_volume_evaluation.model_id
+	toColumn: dim_model.model_id
+
+relationship 88d430a0-b42a-5152-b6a1-bfe64528d6ff
+	fromColumn: fact_liquidity.date
+	toColumn: dim_date.Date
+
+relationship 0fdafc19-337b-50f7-a44a-704c4035ed3e
+	fromColumn: fact_liquidity.instrument_id
+	toColumn: dim_instrument.instrument_id
+
+relationship 855a7a48-8e50-5b1f-866d-26f78373f161
+	fromColumn: fact_cost.date
+	toColumn: dim_date.Date
+
+relationship 1f6eaf42-2218-535a-952d-fe185930e831
+	fromColumn: fact_cost.instrument_id
+	toColumn: dim_instrument.instrument_id

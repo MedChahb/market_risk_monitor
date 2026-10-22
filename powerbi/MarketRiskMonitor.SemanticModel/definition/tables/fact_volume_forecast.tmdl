@@ -1,0 +1,61 @@
+table fact_volume_forecast
+	lineageTag: a8a454bc-b8e8-522a-a246-19e1608e1296
+
+	column date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: 820b691a-7008-500f-9639-c6fe57917a75
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column instrument_id
+		dataType: string
+		isHidden
+		lineageTag: 0e74e2c9-bc31-5b68-a488-8196794d7113
+		summarizeBy: none
+		sourceColumn: instrument_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column model_id
+		dataType: string
+		isHidden
+		lineageTag: 6c80f1d9-5356-56dd-9493-d9a8472a2609
+		summarizeBy: none
+		sourceColumn: model_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column forecast_vs_adv
+		dataType: double
+		isHidden
+		lineageTag: 9b602130-b6b9-58ba-a877-2da5f231659e
+		summarizeBy: none
+		sourceColumn: forecast_vs_adv
+
+		annotation SummarizationSetBy = Automatic
+
+	column actual_vs_adv
+		dataType: double
+		isHidden
+		lineageTag: 037c38e7-470a-557e-bb41-40ff6517da41
+		summarizeBy: none
+		sourceColumn: actual_vs_adv
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_volume_forecast = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_volume_forecast.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"date", type date}, {"instrument_id", type text}, {"model_id", type text}, {"forecast_vs_adv", type number}, {"actual_vs_adv", type number}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

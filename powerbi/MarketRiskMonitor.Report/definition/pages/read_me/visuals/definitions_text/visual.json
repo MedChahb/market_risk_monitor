@@ -1,0 +1,154 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "definitions_text",
+  "position": {
+    "x": 1236,
+    "y": 424,
+    "z": 5000,
+    "width": 652,
+    "height": 624,
+    "tabOrder": 5000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Definitions'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Definitions",
+                    "textStyle": {
+                      "fontWeight": "bold",
+                      "fontSize": "13pt",
+                      "color": "#0b0b0b"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "VaR 99%, 1 day: the loss exceeded on 1% of days, computed at each close for the next trading day.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Expected Shortfall 97.5%: the average loss on the worst 2.5% of days.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Exception: a day whose loss exceeds the VaR computed at the previous close.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Basel traffic light: exceptions over the last 250 days; green 0 to 4, yellow 5 to 9, red 10 or more.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "QLIKE: loss function for variance forecasts, robust to noisy realised measures; lower is better.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Diebold-Mariano: test of equal forecast accuracy between two models.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "ADV: average daily volume of the last 20 sessions. Participation: order size / session volume.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Square-root law: market impact grows with volatility and the square root of participation.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

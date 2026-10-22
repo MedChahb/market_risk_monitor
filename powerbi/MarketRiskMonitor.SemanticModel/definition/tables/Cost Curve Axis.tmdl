@@ -1,0 +1,15 @@
+table 'Cost Curve Axis'
+	lineageTag: 7b60697c-eaee-5710-bd8a-027b276a7bb0
+
+	column 'Order Size, Curve (% of volume)'
+		dataType: int64
+		formatString: 0\%
+		lineageTag: 7e91dbda-0f15-5863-a4e9-a6e3ed99d871
+		summarizeBy: none
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = User
+
+	partition 'Cost Curve Axis' = calculated
+		mode: import
+		source = GENERATESERIES ( 1, 30, 1 )

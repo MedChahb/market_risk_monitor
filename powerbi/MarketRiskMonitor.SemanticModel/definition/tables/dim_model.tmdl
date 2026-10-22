@@ -19,6 +19,14 @@ table dim_model
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Forecast Target'
+		dataType: string
+		lineageTag: 1c5d8a1d-1859-5810-8882-84af4e480561
+		summarizeBy: none
+		sourceColumn: target
+
+		annotation SummarizationSetBy = Automatic
+
 	column 'Model Description'
 		dataType: string
 		lineageTag: 582fabee-7bdf-59ae-abc3-0c6f6367e7ba
@@ -32,7 +40,7 @@ table dim_model
 		source =
 				let
 				    Source = Parquet.Document(File.Contents(DataFolder & "\dim_model.parquet")),
-				    Typed = Table.TransformColumnTypes(Source, {{"model_id", type text}, {"name", type text}, {"description", type text}})
+				    Typed = Table.TransformColumnTypes(Source, {{"model_id", type text}, {"name", type text}, {"target", type text}, {"description", type text}})
 				in
 				    Typed
 

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "name": "execution",
+  "displayName": "Execution",
+  "displayOption": "FitToPage",
+  "height": 1080,
+  "width": 1920,
+  "visualInteractions": [
+    {
+      "source": "model",
+      "target": "volume_models_table",
+      "type": "NoFilter"
+    },
+    {
+      "source": "date_range",
+      "target": "volume_models_table",
+      "type": "NoFilter"
+    },
+    {
+      "source": "volume_forecast",
+      "target": "cost_curve",
+      "type": "NoFilter"
+    },
+    {
+      "source": "volume_forecast",
+      "target": "volume_models_table",
+      "type": "NoFilter"
+    },
+    {
+      "source": "volume_forecast",
+      "target": "cost_history",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cost_curve",
+      "target": "volume_forecast",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cost_curve",
+      "target": "volume_models_table",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cost_curve",
+      "target": "cost_history",
+      "type": "NoFilter"
+    },
+    {
+      "source": "volume_models_table",
+      "target": "volume_forecast",
+      "type": "NoFilter"
+    },
+    {
+      "source": "volume_models_table",
+      "target": "cost_curve",
+      "type": "NoFilter"
+    },
+    {
+      "source": "volume_models_table",
+      "target": "cost_history",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cost_history",
+      "target": "volume_forecast",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cost_history",
+      "target": "cost_curve",
+      "type": "NoFilter"
+    },
+    {
+      "source": "cost_history",
+      "target": "volume_models_table",
+      "type": "NoFilter"
+    }
+  ]
+}

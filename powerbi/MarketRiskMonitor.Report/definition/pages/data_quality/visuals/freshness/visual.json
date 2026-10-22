@@ -4,10 +4,10 @@
   "position": {
     "x": 936,
     "y": 688,
-    "z": 6000,
+    "z": 5000,
     "width": 520,
     "height": 360,
-    "tabOrder": 6000
+    "tabOrder": 5000
   },
   "visual": {
     "visualType": "tableEx",
@@ -73,6 +73,23 @@
             }
           ]
         }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "fact_freshness"
+                  }
+                },
+                "Property": "Sessions Late"
+              }
+            },
+            "direction": "Descending"
+          }
+        ]
       }
     },
     "objects": {
@@ -197,7 +214,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'No last date: the source delivered nothing.'"
+                  "Value": "'Latest first. No last date: the source delivered nothing.'"
                 }
               }
             },
