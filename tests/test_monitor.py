@@ -81,7 +81,11 @@ def test_rolling_errors_average_the_last_63_sessions():
             for model, forecast in [("xgboost_volume", 1.0), ("adv20", np.e)]
         ]
     )
-    table = monitor.rolling_errors(forecasts, volume).set_index(["metric", "model_id", "date"])["value"].sort_index()
+    table = (
+        monitor.rolling_errors(forecasts, volume)
+        .set_index(["metric", "model_id", "date"])["value"]
+        .sort_index()
+    )
     assert table.loc[("qlike_63d_book_volatility", "gjr")].iloc[0] == pytest.approx(0.0)
     assert table.loc[("qlike_63d_book_volatility", "har")].iloc[0] == pytest.approx(2 - np.log(2) - 1)
     assert table.loc[("mse_log_63d_volume", "adv20")].iloc[0] == pytest.approx(1.0)
