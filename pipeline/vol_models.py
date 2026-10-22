@@ -3,8 +3,10 @@
 Every model forecasts the average daily variance of the next 5 trading days, from EUR returns in
 percent (so variances are in percent squared). Models are trained on 2008-2017, then refitted at the
 start of every month from 2018 on all past data; supervised models drop the last 5 training rows,
-whose targets overlap the month they forecast. The VIX and the curve slopes enter the machine-learning
-models only when their series cover the whole history, and every run records which inputs it used.
+whose targets overlap the month they forecast. Range-based variances (from open, high, low and close)
+feed HAR-range and the machine-learning models for the positions that have them; the VIX and the curve
+slopes enter the machine-learning models only when their series cover the whole history. Every run
+records which inputs it used.
 Forecasts are written to data/forecasts/ (re-running a model replaces its rows) and runs to MLflow.
 """
 
@@ -24,7 +26,7 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 
 from pipeline import config, db, evaluation, files
-from pipeline.book import BOOK_NOTIONAL
+from pipeline.book import BOOK, BOOK_NOTIONAL
 
 log = logging.getLogger("vol_models")
 
@@ -33,9 +35,10 @@ TEST_START = pd.Timestamp("2018-01-01")
 EWMA_DECAY = 0.94  # RiskMetrics value for daily data
 EPSILON = 1e-6  # added to squared returns (percent squared) before taking logs
 SEQUENCE_LENGTH = 22  # days of history the GRU reads, about a month
-MODELS = ("ewma", "garch", "har", "xgboost", "gru")
+MODELS = ("ewma", "garch", "gjr", "har", "har_range", "xgboost", "gru")
 BASELINE = "har"
 HAR_COLUMNS = ["log_rv_d", "log_rv_w", "log_rv_m"]
+RANGE_COLUMNS = ["log_range_d", "log_range_w", "log_range_m"]
 XGB_SETTINGS = {  # fixed and shallow, never tuned on the test period
     "n_estimators": 300,
     "max_depth": 3,
@@ -51,6 +54,7 @@ FORECAST_FILE = config.FORECAST_DIR / "vol_forecasts.parquet"
 FORECAST_COLUMNS = ["date", "series_id", "model_id", "forecast_var", "realised_var", "inputs"]
 PNL_QUERY = text("SELECT date, position_id, return_eur, pnl_eur FROM gold.fact_pnl")
 SILVER_QUERY = text("SELECT date, instrument_id, value FROM silver.market")
+RANGE_QUERY = text("SELECT date, instrument_id, range_variance FROM silver.daily_range")
 
 
 def series_returns(pnl: pd.DataFrame) -> pd.DataFrame:
@@ -81,17 +85,34 @@ def realised_variance(returns: pd.Series) -> pd.Series:
     return (returns**2).rolling(HORIZON).mean().shift(-HORIZON)
 
 
-def build_features(returns: pd.Series, exogenous: pd.DataFrame) -> pd.DataFrame:
-    """Inputs known at the close of day t: HAR terms in logs, the size and sign of r_t, exogenous series."""
-    squared = returns**2
-    har_terms = pd.DataFrame(
-        {
-            "log_rv_d": np.log(squared + EPSILON),
-            "log_rv_w": np.log(squared.rolling(5).mean() + EPSILON),
-            "log_rv_m": np.log(squared.rolling(22).mean() + EPSILON),
-        }
+def daily_weekly_monthly(variance: pd.Series, columns: list[str]) -> pd.DataFrame:
+    """Logs of the variance over the last 1, 5 and 22 days: the three HAR terms."""
+    windows = [variance, variance.rolling(5).mean(), variance.rolling(22).mean()]
+    return pd.DataFrame(
+        {column: np.log(values + EPSILON) for column, values in zip(columns, windows, strict=True)}
     )
-    return har_terms.assign(abs_return=returns.abs(), sign=np.sign(returns)).join(exogenous)
+
+
+def build_features(returns: pd.Series, exogenous: pd.DataFrame, ranges: pd.Series | None) -> pd.DataFrame:
+    """Inputs known at the close of day t: HAR terms in logs, the size and sign of r_t, range-based
+    HAR terms when the position has open, high, low and close, and the exogenous series."""
+    features = daily_weekly_monthly(returns**2, HAR_COLUMNS).assign(
+        abs_return=returns.abs(), sign=np.sign(returns)
+    )
+    if ranges is not None:
+        features = features.join(daily_weekly_monthly(ranges, RANGE_COLUMNS))
+    return features.join(exogenous)
+
+
+def position_ranges(daily_range: pd.DataFrame, dates: pd.DatetimeIndex) -> dict[str, pd.Series]:
+    """Range-based variance per position, on the book's dates; a day without a session counts as zero."""
+    daily_range = daily_range.assign(date=pd.to_datetime(daily_range["date"]))
+    wide = daily_range.pivot(index="date", columns="instrument_id", values="range_variance")
+    return {
+        position.position_id: wide[position.instrument].reindex(dates).fillna(0.0)
+        for position in BOOK
+        if position.instrument in wide
+    }
 
 
 def test_months(dates: pd.DatetimeIndex) -> list[tuple[pd.Timestamp, pd.DatetimeIndex]]:
@@ -109,9 +130,11 @@ def ewma_variance(returns: pd.Series) -> pd.Series:
     return (returns**2).ewm(alpha=1 - EWMA_DECAY, adjust=False).mean()
 
 
-def garch_forecasts(returns: pd.Series, months: list) -> pd.Series:
-    """GARCH(1,1) with Student-t errors, refitted monthly; mean of the 1- to 5-day variance forecasts."""
-    model = arch_model(returns, mean="Zero", vol="GARCH", p=1, q=1, dist="t", rescale=False)
+def garch_forecasts(returns: pd.Series, months: list, asymmetric: bool) -> pd.Series:
+    """GARCH(1,1), or GJR-GARCH when asymmetric (a fall raises volatility more than a rise), with
+    Student-t errors, refitted monthly; mean of the 1- to 5-day variance forecasts."""
+    order = 1 if asymmetric else 0
+    model = arch_model(returns, mean="Zero", vol="GARCH", p=1, o=order, q=1, dist="t", rescale=False)
     forecasts = []
     for month_start, days in months:
         with warnings.catch_warnings():
@@ -125,6 +148,8 @@ def garch_forecasts(returns: pd.Series, months: list) -> pd.Series:
 class Har:
     """Corsi (2009) HAR on log variances, back-transformed with Duan's smearing factor."""
 
+    columns = HAR_COLUMNS
+
     def fit(self, features: pd.DataFrame, log_target: np.ndarray) -> None:
         design = self._design(features)
         self.coefficients, *_ = np.linalg.lstsq(design, log_target, rcond=None)
@@ -134,7 +159,13 @@ class Har:
         return np.exp(self._design(features) @ self.coefficients) * self.smearing
 
     def _design(self, features: pd.DataFrame) -> np.ndarray:
-        return np.column_stack([np.ones(len(features)), features[HAR_COLUMNS].to_numpy()])
+        return np.column_stack([np.ones(len(features)), features[self.columns].to_numpy()])
+
+
+class HarRange(Har):
+    """HAR on range-based variances instead of squared returns."""
+
+    columns = RANGE_COLUMNS
 
 
 class Boosted:
@@ -199,7 +230,7 @@ class Gru:
         return standardised * self.target_std + self.target_mean
 
 
-SUPERVISED = {"har": Har, "xgboost": Boosted, "gru": Gru}
+SUPERVISED = {"har": Har, "har_range": HarRange, "xgboost": Boosted, "gru": Gru}
 
 
 def sequences(features: pd.DataFrame, dates: pd.DatetimeIndex) -> np.ndarray:
@@ -230,22 +261,26 @@ def walk_forward(model_id: str, features: pd.DataFrame, target: pd.Series, month
 
 
 def forecast_series(
-    series_id: str, returns: pd.Series, exogenous: pd.DataFrame, models: list[str]
+    series_id: str, returns: pd.Series, exogenous: pd.DataFrame, ranges: pd.Series | None, models: list[str]
 ) -> pd.DataFrame:
     months = test_months(returns.index)
     test_dates = returns.index[returns.index >= TEST_START]
-    features = build_features(returns, exogenous)
+    features = build_features(returns, exogenous, ranges)
     target = realised_variance(returns)
     frames = []
     for model_id in models:
+        if model_id == "har_range" and ranges is None:
+            continue  # no open, high, low and close for this series
         started = time.perf_counter()
         if model_id == "ewma":
             forecast, inputs = ewma_variance(returns).loc[test_dates], "returns"
-        elif model_id == "garch":
-            forecast, inputs = garch_forecasts(returns, months), "returns"
+        elif model_id in ("garch", "gjr"):
+            forecast, inputs = garch_forecasts(returns, months, asymmetric=model_id == "gjr"), "returns"
         else:
             forecast = walk_forward(model_id, features, target, months)
-            inputs = ",".join(HAR_COLUMNS if model_id == "har" else features.columns)
+            inputs = ",".join(
+                SUPERVISED[model_id].columns if model_id in ("har", "har_range") else features.columns
+            )
         frames.append(
             pd.DataFrame(
                 {
@@ -261,6 +296,8 @@ def forecast_series(
         log.info(
             "%s %s: %d forecasts, %.1fs", series_id, model_id, len(forecast), time.perf_counter() - started
         )
+    if not frames:
+        return pd.DataFrame(columns=FORECAST_COLUMNS)
     return pd.concat(frames, ignore_index=True)[FORECAST_COLUMNS]
 
 
@@ -310,22 +347,26 @@ def store(forecasts: pd.DataFrame, models: list[str]) -> pd.DataFrame:
     return forecasts
 
 
-def log_runs(table: pd.DataFrame, models: list[str], inputs: dict[str, str]) -> None:
+def log_runs(table: pd.DataFrame, models: list[str], inputs: pd.DataFrame) -> None:
+    """One MLflow run per model: settings, the inputs used for each series, and the losses."""
     mlflow.set_tracking_uri(config.MLFLOW_URI)
     mlflow.set_experiment("volatility")
-    settings = {"boosted": XGB_SETTINGS, "gru": {"hidden": Gru.hidden, "epochs": Gru.epochs}}
+    model_settings = {
+        "ewma": {"ewma_decay": EWMA_DECAY},
+        "xgboost": {f"xgb_{key}": value for key, value in XGB_SETTINGS.items()},
+        "gru": {"gru_hidden": Gru.hidden, "gru_epochs": Gru.epochs, "gru_sequence_length": SEQUENCE_LENGTH},
+    }
     for model_id in models:
         with mlflow.start_run(run_name=model_id):
+            used = inputs[inputs["model_id"] == model_id]
             mlflow.log_params(
                 {
                     "model": model_id,
                     "horizon_days": HORIZON,
                     "test_start": TEST_START.date().isoformat(),
                     "refit": "monthly, expanding window, last 5 training rows purged",
-                    "inputs": inputs[model_id],
-                    "ewma_decay": EWMA_DECAY if model_id == "ewma" else None,
-                    **{f"xgb_{k}": v for k, v in settings["boosted"].items() if model_id == "xgboost"},
-                    **{f"gru_{k}": v for k, v in settings["gru"].items() if model_id == "gru"},
+                    **model_settings.get(model_id, {}),
+                    **{f"inputs/{row.series_id}": row.inputs for row in used.itertuples()},
                 }
             )
             for row in table[table["model_id"] == model_id].itertuples():
@@ -346,19 +387,20 @@ def main(argv: list[str] | None = None) -> int:
     with db.engine().connect() as conn:
         returns = series_returns(pd.read_sql(PNL_QUERY, conn))
         exogenous = exogenous_features(pd.read_sql(SILVER_QUERY, conn), returns.index)
+        ranges = position_ranges(pd.read_sql(RANGE_QUERY, conn), returns.index)
     missing = sorted({"log_vix", "us_slope", "eur_slope"} - set(exogenous.columns))
     log.info("exogenous inputs: %s; not available: %s", list(exogenous.columns) or "none", missing or "none")
 
     forecasts = pd.concat(
         [
-            forecast_series(series_id, returns[series_id], exogenous, args.models)
+            forecast_series(series_id, returns[series_id], exogenous, ranges.get(series_id), args.models)
             for series_id in returns.columns
         ],
         ignore_index=True,
     )
     every_model = store(forecasts, args.models)
     table = results_table(every_model)
-    inputs = forecasts.drop_duplicates("model_id").set_index("model_id")["inputs"].to_dict()
+    inputs = forecasts.drop_duplicates(["model_id", "series_id"])[["model_id", "series_id", "inputs"]]
     log_runs(table, args.models, inputs)
 
     summary = table[table["period"] == "2018-2026"].pivot(

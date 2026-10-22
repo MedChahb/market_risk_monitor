@@ -29,8 +29,8 @@ def test_features_use_nothing_after_the_forecast_date():
     returns = garch_returns()
     changed = returns.copy()
     changed.iloc[600:] *= 10
-    before = vol_models.build_features(returns, pd.DataFrame(index=DATES))
-    after = vol_models.build_features(changed, pd.DataFrame(index=DATES))
+    before = vol_models.build_features(returns, pd.DataFrame(index=DATES), None)
+    after = vol_models.build_features(changed, pd.DataFrame(index=DATES), None)
     pd.testing.assert_frame_equal(before.iloc[:600], after.iloc[:600])
 
 
@@ -65,7 +65,7 @@ def test_supervised_training_stops_five_rows_before_the_forecast_month(monkeypat
 
     monkeypatch.setitem(vol_models.SUPERVISED, "har", Recorder)
     returns = garch_returns()
-    features = vol_models.build_features(returns, pd.DataFrame(index=DATES))
+    features = vol_models.build_features(returns, pd.DataFrame(index=DATES), None)
     months = vol_models.test_months(DATES)
     vol_models.walk_forward("har", features, vol_models.realised_variance(returns), months)
     for (month_start, _), train in zip(months, seen, strict=True):
@@ -86,7 +86,7 @@ def test_har_recovers_the_coefficients_of_an_exact_relation():
 def test_garch_forecasts_every_test_day_and_rises_after_a_shock():
     returns = garch_returns()
     returns.loc["2018-02-14"] = 12.0
-    forecast = vol_models.garch_forecasts(returns, vol_models.test_months(DATES))
+    forecast = vol_models.garch_forecasts(returns, vol_models.test_months(DATES), asymmetric=False)
     assert forecast.index.equals(DATES[DATES >= "2018-01-01"]) and (forecast > 0).all()
     assert forecast.loc["2018-02-14"] > 2 * forecast.loc["2018-02-13"]
 
@@ -94,7 +94,7 @@ def test_garch_forecasts_every_test_day_and_rises_after_a_shock():
 def test_every_supervised_model_gives_positive_forecasts(monkeypatch):
     monkeypatch.setattr(vol_models.Gru, "epochs", 2)
     returns = garch_returns()
-    features = vol_models.build_features(returns, pd.DataFrame(index=DATES))
+    features = vol_models.build_features(returns, pd.DataFrame(index=DATES), None)
     target = vol_models.realised_variance(returns)
     months = vol_models.test_months(DATES)[:1]
     for model_id in ("har", "xgboost", "gru"):
@@ -157,3 +157,67 @@ def test_results_compare_each_model_with_har_on_the_same_days():
         and table.loc[("2018-2026", "perfect"), "dm_p_vs_har"] < 0.01
     )
     assert np.isnan(table.loc[("2018-2026", "har"), "dm_p_vs_har"])
+
+
+def gjr_returns(seed: int = 6) -> pd.Series:
+    """Returns from a GJR process: a fall raises the next variance more than a rise of the same size."""
+    rng = np.random.default_rng(seed)
+    variance, values = 1.0, []
+    for shock in rng.standard_normal(len(DATES)):
+        value = np.sqrt(variance) * shock
+        values.append(value)
+        variance = 0.05 + (0.02 + 0.15 * (value < 0)) * value**2 + 0.88 * variance
+    return pd.Series(values, index=DATES)
+
+
+def test_gjr_reacts_more_to_a_fall_than_to_a_rise_and_garch_does_not():
+    months = vol_models.test_months(DATES)[1:2]  # February 2018
+    shock_day = months[0][1][5]
+    responses = {}
+    for asymmetric in (False, True):
+        after = {}
+        for sign in (-1, 1):
+            returns = gjr_returns()
+            returns.loc[shock_day] = sign * 6.0
+            after[sign] = vol_models.garch_forecasts(returns, months, asymmetric).loc[shock_day]
+        responses[asymmetric] = after
+    assert responses[True][-1] > 1.2 * responses[True][1]
+    assert responses[False][-1] == pytest.approx(responses[False][1])
+
+
+def test_range_terms_are_added_only_for_positions_with_prices_for_a_range():
+    returns = garch_returns()
+    ranges = returns**2 * 0.8
+    with_range = vol_models.build_features(returns, pd.DataFrame(index=DATES), ranges)
+    assert set(vol_models.RANGE_COLUMNS) <= set(with_range.columns)
+    assert with_range["log_range_d"].iloc[0] == pytest.approx(np.log(ranges.iloc[0] + vol_models.EPSILON))
+    without = vol_models.build_features(returns, pd.DataFrame(index=DATES), None)
+    assert not set(vol_models.RANGE_COLUMNS) & set(without.columns)
+
+
+def test_har_range_is_skipped_for_a_series_without_ranges():
+    forecasts = vol_models.forecast_series(
+        "USD_CASH", garch_returns(), pd.DataFrame(index=DATES), None, ["har_range"]
+    )
+    assert forecasts.empty
+
+
+def test_har_range_regresses_on_the_range_terms():
+    returns = garch_returns()
+    forecasts = vol_models.forecast_series(
+        "CAC40", returns, pd.DataFrame(index=DATES), returns**2 * 0.8, ["har_range"]
+    )
+    assert (
+        set(forecasts["inputs"]) == {",".join(vol_models.RANGE_COLUMNS)}
+        and (forecasts["forecast_var"] > 0).all()
+    )
+
+
+def test_position_ranges_count_a_day_without_a_session_as_zero():
+    dates = DATES[:4]
+    daily_range = pd.DataFrame(
+        {"date": [dates[0], dates[1], dates[3]], "instrument_id": "CAC40", "range_variance": [1.0, 2.0, 3.0]}
+    )
+    ranges = vol_models.position_ranges(daily_range, dates)
+    assert list(ranges) == ["CAC40"]  # positions without a range are absent
+    assert ranges["CAC40"].tolist() == [1.0, 2.0, 0.0, 3.0]
