@@ -4,7 +4,7 @@ Market risk monitoring of a fictional multi-asset trading book in euros (equitie
 
 The goal: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall, and backtests them, with the results reported in Power BI.
 
-**Status:** work in progress. Ingestion, the data quality gate, the silver/gold storage, the book P&L, volatility forecasts, VaR and ES, and a first Power BI report are in place; this README grows as each part is built.
+**Status:** work in progress. Ingestion, the data quality gate, the silver/gold storage, the book P&L, volatility forecasts, VaR and ES with their backtest, and a first Power BI report are in place; this README grows as each part is built.
 
 ## Data lineage
 
@@ -24,6 +24,8 @@ flowchart LR
     V --> G
     V --> VR[VaR and ES<br/>5 methods]
     VR --> G
+    VR --> BT[backtest<br/>Kupiec, Christoffersen, traffic light]
+    BT --> G
     DQ --> G
     G --> P[gold Parquet<br/>data/gold]
     P --> BI[Power BI report]
@@ -65,7 +67,21 @@ Main references: Bollerslev (1986), Glosten, Jagannathan and Runkle (1993), Cors
 
 The 1-day VaR 99% and ES 97.5% of the book are computed every day from 2012 with five methods ([`pipeline/var.py`](pipeline/var.py), analysis in [`notebooks/03_var.ipynb`](notebooks/03_var.ipynb)): historical simulation on the last 250 P&Ls, normal parametric with EWMA, GARCH and GJR-GARCH 1-day forecasts, and filtered historical simulation (500 returns standardised by GJR-GARCH and rescaled to tomorrow's volatility). Each figure is stored with the day it covers.
 
-In March 2020 the volatility-driven VaRs doubled by 25-28 February, before the worst losses of 9-16 March; historical simulation doubled only on 17 March and stayed at its peak until February 2021. On 12 March 2020, the book's worst day (a loss of 687 k€), the VaR was 220 k€ with historical simulation, 556 k€ with the GJR parametric method and 754 k€ with filtered historical simulation. The method to recommend is decided by the backtest (Kupiec, Christoffersen, Basel traffic light).
+In March 2020 the volatility-driven VaRs doubled by 25-28 February, before the worst losses of 9-16 March; historical simulation doubled only on 17 March and stayed at its peak until February 2021. On 12 March 2020, the book's worst day (a loss of 687 k€), the VaR was 220 k€ with historical simulation, 556 k€ with the GJR parametric method and 754 k€ with filtered historical simulation. The backtest below decides which one to use.
+
+## Backtesting
+
+Each day's VaR is compared with the book's actual P&L on the day it covers, over 3,823 days from 2012 ([`pipeline/backtest.py`](pipeline/backtest.py), analysis in [`notebooks/04_backtest.ipynb`](notebooks/04_backtest.ipynb)): exception counts against the 1% promised, Kupiec's proportion-of-failures test, Christoffersen's independence test and the Basel traffic light on 250 days.
+
+| VaR 99%, 2012-2026 | Exceptions (38 expected) | Kupiec p | Christoffersen p | Worst zone |
+|---|---|---|---|---|
+| Filtered historical simulation | 38 | 0.970 | 0.382 | yellow |
+| Parametric (GJR) | 54 | 0.016 | 0.213 | yellow |
+| Historical simulation | 55 | 0.011 | < 0.001 | red |
+| Parametric (GARCH) | 56 | 0.007 | 0.010 | red |
+| Parametric (EWMA) | 74 | < 0.001 | 0.003 | red |
+
+Filtered historical simulation is the recommended risk figure: the only method that passes every test, including 2020 (3 exceptions for 2.6 expected) and 2022 (3 for 2.6), with 93% of days in the green zone and none in the red. The normal parametric methods are exceeded too often even with the GJR forecast, consistent with the fat tails of the returns; historical simulation adds clustered exceptions to that.
 
 ## Power BI report
 
@@ -98,6 +114,7 @@ docker compose up -d               # PostgreSQL 16 on 127.0.0.1:5432
 .venv/bin/python -m pipeline.book                         # daily P&L of the book
 .venv/bin/python -m pipeline.vol_models                   # volatility forecasts (the GRU: about 30 min on a GPU, 70 on CPU)
 .venv/bin/python -m pipeline.var                          # daily VaR and ES of the book
+.venv/bin/python -m pipeline.backtest                     # exceptions, Kupiec, Christoffersen, traffic light
 .venv/bin/python -m pipeline.publish                      # gold tables to data/gold/*.parquet
 .venv/bin/pytest                                           # tests (database tests skip without PostgreSQL)
 ```
