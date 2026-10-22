@@ -12,6 +12,10 @@ __pycache__/
 
 # MLflow local runs
 mlruns/
+mlflow.db
+
+# Model forecasts (loaded to the gold tables by publish)
+data/forecasts/
 
 # Data quality results (loaded to the gold tables in Step 4)
 data/dq/

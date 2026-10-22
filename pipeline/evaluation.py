@@ -38,6 +38,8 @@ def newey_west_variance(values: np.ndarray, lags: int) -> float:
 def diebold_mariano(loss_a: pd.Series, loss_b: pd.Series, horizon: int) -> tuple[float, float]:
     """Statistic and two-sided p-value of H0 "same expected loss"; a negative statistic favours A."""
     difference = (loss_a - loss_b).dropna().to_numpy()
+    if len(difference) < 2:
+        return np.nan, np.nan
     variance = newey_west_variance(difference, newey_west_lags(len(difference), horizon))
     if variance <= 0:
         return 0.0, 1.0  # identical losses
