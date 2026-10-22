@@ -4,7 +4,7 @@ Market risk monitoring of a fictional multi-asset trading book in euros (equitie
 
 The goal: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall and backtests them, forecasts traded volumes and estimates the cost of an order, with the results reported in Power BI.
 
-**Status:** v1.0 (19 October 2026): data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest, and a six-page Power BI report. Since v1.0: volume forecasts and pre-trade costs for ten CAC 40 stocks, with an Execution page in the report, daily market regimes and an anomaly detector for market data. Scheduling and monitoring and a public web app come next.
+**Status:** v1.0 (19 October 2026): data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest, and a six-page Power BI report. Since v1.0: volume forecasts and pre-trade costs for ten CAC 40 stocks, with an Execution page in the report, daily market regimes, an anomaly detector for market data, and a scheduled, monitored run in Jenkins. A Production page and a public web app come next.
 
 ## Data lineage
 
@@ -34,6 +34,8 @@ flowchart LR
     MR --> G
     R --> AE[detector evaluation<br/>injected errors]
     AE --> G
+    J[Jenkins<br/>weekday nights, Saturdays] -.runs.-> R
+    G --> M[monitor<br/>runs, drift, rolling errors]
     DQ --> G
     G --> P[gold Parquet<br/>data/gold]
     P --> BI[Power BI report]
@@ -136,6 +138,14 @@ Market data has no labels, so the detector is measured on 200 errors of each typ
 
 The production detector flags none of the ten largest real moves and five days in eighteen years of real data, including an Air Liquide close on a quarterly expiry Friday that reversed the next day. The Isolation Forest is less precise for the same recall and flags genuine extreme days, so it is kept as a benchmark. Roll jumps of 2% to 6% look like ordinary moves and need the futures roll calendar or a second source.
 
+## Scheduling and monitoring
+
+The chain runs in Jenkins every weekday at 23:00 Paris time, after the US close ([`Jenkinsfile`](Jenkinsfile)): lint, tests, ingestion, quality gate, transform, P&L, volatility models, VaR and backtest, volumes and costs, regimes, the anomaly detector's evaluation, publish. A critical quality failure stops the run before the silver tables, so bad data never reaches the report. The GRU is left out of the scheduled runs; it is rerun by hand. Jenkins runs in Docker next to PostgreSQL, with Python 3.12 and the libraries installed in its image; jobs, credentials and the admin user come from configuration as code ([`jenkins/`](jenkins/)), and secrets reach it as Docker secrets from `.env`. GitHub Actions lints and tests every push ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)). It is a scheduled pipeline on one machine, the same design a bank runs on its servers, and it runs when the machine is on.
+
+Every Saturday a champion and challenger job ([`jenkins/Jenkinsfile.retrain`](jenkins/Jenkinsfile.retrain), [`pipeline/promotion.py`](pipeline/promotion.py)) scores the EWMA, GARCH and GJR-GARCH 1-day forecasts on the last 250 days. A challenger replaces the champion behind the parametric VaR only if its QLIKE is lower and the Basel zone of its VaR is no worse; the champion is an alias in the MLflow model registry, which the VaR stage reads. The first run kept GJR-GARCH (QLIKE 1.606 against 1.637 for GARCH, both green).
+
+After every run, [`pipeline/monitor.py`](pipeline/monitor.py) records it in `fact_runs` (status, last stage reached, rows in gold, failed quality rules, promotion decision), the drift of the book's inputs (PSI over the last 250 sessions against 2008-2017) and the rolling errors of the volatility and volume models against their baselines. A duplicate price inserted by hand made the quality gate fail the run, every later stage was skipped, and the run appears as failed in `fact_runs`.
+
 ## Power BI report
 
 Seven pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`](powerbi/): the semantic model in TMDL (56 measures) and the pages in PBIR, so every change to a measure or a visual is a reviewable diff. Report changes are listed in [CHANGELOG.md](CHANGELOG.md); the full report is also in [`docs/report.pdf`](docs/report.pdf).
@@ -186,6 +196,8 @@ docker compose up -d               # PostgreSQL 16 on 127.0.0.1:5432
 .venv/bin/python -m pipeline.anomaly_evaluation           # anomaly detector measured on injected errors
 .venv/bin/python -m pipeline.publish                      # gold tables to data/gold/*.parquet
 .venv/bin/pytest                                           # tests (database tests skip without PostgreSQL)
+
+docker compose up -d --build jenkins                       # Jenkins on http://127.0.0.1:8080 (admin, JENKINS_ADMIN_PASSWORD)
 ```
 
 ## License
