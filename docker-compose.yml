@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16
+    restart: unless-stopped  # back after a WSL or Docker restart, for the scheduled runs
     environment:
       POSTGRES_USER: mrm
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
@@ -18,6 +19,7 @@ services:
     build:
       context: .
       dockerfile: jenkins/Dockerfile
+    restart: unless-stopped
     environment:
       JAVA_OPTS: >-
         -Djenkins.install.runSetupWizard=false
