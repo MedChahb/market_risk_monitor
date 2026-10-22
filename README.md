@@ -52,12 +52,12 @@ Seven models forecast the variance of each position and of the book over the nex
 
 | Book, 2018-2026 | EWMA | GARCH | GJR | HAR | XGBoost | GRU |
 |---|---|---|---|---|---|---|
-| QLIKE (lower is better) | 0.453 | 0.417 | 0.399 | 0.427 | 0.434 | 0.397 |
-| Diebold-Mariano p-value against HAR | 0.090 (worse) | 0.262 | 0.080 | | 0.617 (worse) | 0.041 |
+| QLIKE (lower is better) | 0.453 | 0.417 | 0.399 | 0.427 | 0.440 | 0.402 |
+| Diebold-Mariano p-value against HAR | 0.090 (worse) | 0.262 | 0.080 | | 0.524 (worse) | 0.153 |
 
-GJR-GARCH is the champion volatility forecast for the VaR: lowest QLIKE on four of the six positions, significantly better than HAR on six of the seven series and the most accurate in the 2020 crash. The GRU is marginally better on the book but indistinguishable from GJR (p = 0.91), worse than HAR on three positions and far slower to train, so it is kept as challenger. On daily data and without the VIX (FRED offline since 21 October 2026), machine learning beats HAR only on the CAC 40 and the book, in line with Branco, Rubesam and Zevallos (2024).
+GJR-GARCH is the champion volatility forecast for the VaR: lowest QLIKE on the book, significantly better than HAR on six of the seven series and the most accurate in the 2020 crash, though its gain over HAR on the book itself is not significant (p = 0.08). With the VIX among its inputs, XGBoost is the most accurate model on the three equity indices and significantly better than HAR there, but the least accurate on the book in 2020; the GRU is significantly better than HAR on no series. Machine learning adds accuracy where an extra input carries information, in line with Branco, Rubesam and Zevallos (2024).
 
-Main references: Bollerslev (1986), Glosten, Jagannathan and Runkle (1993), Corsi (2009), Garman and Klass (1980), Yang and Zhang (2000), Patton (2011), Diebold and Mariano (1995), Hansen and Lunde (2005), Christensen, Siggaard and Veliyev (2023), Branco, Rubesam and Zevallos (2024); full citations in the notebook.
+Main references: Bollerslev (1986), Glosten, Jagannathan and Runkle (1993), Corsi (2009), Garman and Klass (1980), Yang and Zhang (2000), Patton (2011), Diebold and Mariano (1995), Hansen and Lunde (2005), Hansen, Lunde and Nason (2011), Christensen, Siggaard and Veliyev (2023), Branco, Rubesam and Zevallos (2024); full citations in the notebook.
 
 ## Power BI report
 
@@ -88,7 +88,7 @@ docker compose up -d               # PostgreSQL 16 on 127.0.0.1:5432
 .venv/bin/python -m pipeline.quality --fail-on critical   # quality gate
 .venv/bin/python -m pipeline.transform                    # silver and gold tables in PostgreSQL
 .venv/bin/python -m pipeline.book                         # daily P&L of the book
-.venv/bin/python -m pipeline.vol_models                   # volatility forecasts (the GRU takes about an hour)
+.venv/bin/python -m pipeline.vol_models                   # volatility forecasts (the GRU: about 30 min on a GPU, 70 on CPU)
 .venv/bin/python -m pipeline.publish                      # gold tables to data/gold/*.parquet
 .venv/bin/pytest                                           # tests (database tests skip without PostgreSQL)
 ```
