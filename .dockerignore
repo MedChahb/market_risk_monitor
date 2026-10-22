@@ -1,0 +1,4 @@
+# The Jenkins image needs only the requirements and its own files
+*
+!requirements.txt
+!jenkins/

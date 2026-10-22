@@ -1,0 +1,46 @@
+jenkins:
+  systemMessage: "Market Risk Monitor: scheduled pipeline on this machine"
+  numExecutors: 1
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: admin
+          password: "${jenkins_admin_password}"
+  authorizationStrategy: loggedInUsersCanDoAnything
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - string:
+              scope: GLOBAL
+              id: fred-api-key
+              description: FRED API key
+              secret: "${fred_api_key}"
+          - string:
+              scope: GLOBAL
+              id: postgres-password
+              description: PostgreSQL password
+              secret: "${postgres_password}"
+
+jobs:
+  - script: |
+      pipelineJob('market-risk-nightly') {
+        description('Weekday night run: lint, tests, ingestion, quality gate, models, VaR, publish')
+        definition {
+          cpsScm {
+            scm { git { remote { url('file:///repo') }; branch('*/main') } }
+            scriptPath('Jenkinsfile')
+          }
+        }
+      }
+      pipelineJob('market-risk-retrain') {
+        description('Saturday run: champion and challenger for the VaR volatility model')
+        definition {
+          cpsScm {
+            scm { git { remote { url('file:///repo') }; branch('*/main') } }
+            scriptPath('jenkins/Jenkinsfile.retrain')
+          }
+        }
+      }

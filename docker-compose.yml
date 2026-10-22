@@ -14,5 +14,39 @@ services:
       timeout: 3s
       retries: 10
 
+  jenkins:
+    build:
+      context: .
+      dockerfile: jenkins/Dockerfile
+    environment:
+      JAVA_OPTS: >-
+        -Djenkins.install.runSetupWizard=false
+        -Dhudson.plugins.git.GitSCM.ALLOW_LOCAL_CHECKOUT=true
+        -Duser.timezone=Europe/Paris
+      CASC_JENKINS_CONFIG: /var/jenkins_config/casc.yaml
+      TZ: Europe/Paris
+      MRM_DATA_DIR: /data  # the host's data/ folder: the report reads what the night run writes
+      POSTGRES_HOST: db
+    # Local machine only, like the database
+    ports: ["127.0.0.1:8080:8080"]
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - ./jenkins/casc.yaml:/var/jenkins_config/casc.yaml:ro
+      - .:/repo:ro  # jobs build the committed main branch of this repository
+      - ./data:/data
+    secrets: [fred_api_key, postgres_password, jenkins_admin_password]
+    depends_on:
+      db:
+        condition: service_healthy
+
+secrets:
+  fred_api_key:
+    environment: FRED_API_KEY
+  postgres_password:
+    environment: POSTGRES_PASSWORD
+  jenkins_admin_password:
+    environment: JENKINS_ADMIN_PASSWORD
+
 volumes:
   pgdata:
+  jenkins_home:
