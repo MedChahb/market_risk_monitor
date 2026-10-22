@@ -24,7 +24,13 @@ from pipeline import config, db, evaluation, files, publish, vol_models
 
 log = logging.getLogger("monitor")
 
-DRIFT_FEATURES = ["return", "standardised_return", "log_rv_d", "log_rv_w", "log_rv_m"]
+DRIFT_FEATURES = {  # feature: label in the report
+    "return": "Daily return",
+    "standardised_return": "Return over EWMA volatility",
+    "log_rv_d": "Realised variance, 1 day (log)",
+    "log_rv_w": "Realised variance, 5 days (log)",
+    "log_rv_m": "Realised variance, 22 days (log)",
+}
 RECENT_WINDOW = 250  # sessions compared with the training years; a quarter is too autocorrelated
 ROLLING_WINDOW = 63  # sessions in the rolling forecast errors
 PSI_BINS = 10  # deciles of the training distribution
@@ -63,12 +69,12 @@ def measure_drift(features: pd.DataFrame, run_id: str, measured_at: pd.Timestamp
         {
             "run_id": run_id,
             "measured_at": measured_at,
-            "feature": feature,
+            "feature": label,
             "psi": psi(training[feature], recent[feature]),
             "window_start": recent.index[0],
             "window_end": recent.index[-1],
         }
-        for feature in DRIFT_FEATURES
+        for feature, label in DRIFT_FEATURES.items()
         if feature in features
     ]
     drift = pd.DataFrame(rows)
