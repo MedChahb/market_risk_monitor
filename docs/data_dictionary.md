@@ -258,6 +258,8 @@ Key: (`date`, `method`, `fit`).
 
 **`fact_backtest_regime`**: VaR exceptions by the HMM regime at the close when each VaR was computed, per `fit` and `method_id`: `n_days`, `n_exceptions`, `expected_exceptions` (1% of the days) and `kupiec_p`. **`fact_forecast_regime`**: mean QLIKE of each volatility model (`series_id`, `model_id`) by the HMM regime on the forecast date, per `fit`: `n_days`, `qlike`.
 
+**`fact_anomaly_evaluation`**: the anomaly detector measured on injected errors, rebuilt by [`pipeline/anomaly_evaluation.py`](../pipeline/anomaly_evaluation.py) at every run. One row per layer (`layer_order`, `layer`: rules, robust z-score, Isolation Forest at 0.1% and 1% of real days flagged, production): `n_flags`, `precision` (share of flags on a wrong day or the session after it) and the recall of each error type (`recall_spike`, `recall_frozen`, `recall_decimal_shift`, `recall_split`, `recall_missing_days`, `recall_roll_jump`), with `n_per_type` (200) and `seed`. **`fact_anomaly_top_moves`**: the ten largest real daily log returns of the fourteen Yahoo price series (`date`, `instrument_id`, `log_return`, `robust_z`) and `flagged_by`, the layers that flag them (`none` for a correct detector).
+
 ### `fact_dq`: one row per run, instrument and rule
 
 | Column | Type | Description |
@@ -312,6 +314,7 @@ A **critical** rule stops the pipeline before the silver tables (`python -m pipe
 | `late_data` | Warning | Every series | Last date before the previous session | Some sources publish the next morning; a late day is not an error |
 | `fx_cross_source` | Warning | `EURUSD_YAHOO` vs `EURUSD` | Relative gap above 2% | The two sources fix at different times; 2% is about 3.6 daily standard deviations of EUR/USD (0.56%) |
 | `zero_volume` | Warning | The ten stocks | Volume of 0 | A stock with no trade in a session is a feed gap or a holiday bar; the day is left out of `silver.daily_bar` |
+| `suspect_tick` | Warning | Yahoo price series | Robust z-score of the daily log return against the previous 63 returns (median and 1.4826 × MAD) of 6 or more with at least two thirds of the move reversed the next day and the other series' median robust z within ±3 (bad tick), or 30 or more without reversal (level shift) | A bad tick comes back and hits one series; a real crash stays and is shared. The largest real robust z since 2008 is 18.8 (Sanofi, 27 October 2023). Measured on injected errors in `fact_anomaly_evaluation` |
 
 ## Known data issues (checked on 2026-10-21, FRED on 2026-10-22)
 
