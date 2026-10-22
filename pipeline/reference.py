@@ -67,7 +67,7 @@ METHODS = [
     },
     {
         "method_id": "param_champion",
-        "name": "Parametric (champion)",
+        "name": "Parametric (GJR)",
         "description": "Normal quantile, GJR-GARCH volatility (the volatility champion)",
     },
     {
