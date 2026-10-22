@@ -1,7 +1,8 @@
 """Build the silver and gold tables from the latest raw files and load them into PostgreSQL.
 
 Silver holds one value per instrument and reporting day (a day when Paris or New York trades); a day
-without an observation carries the last value forward and is flagged. Gold is the star schema read
+without an observation carries the last value forward and is flagged. The stocks of the execution
+universe get their own silver table of daily bars, on the days they traded. Gold is the star schema read
 by the report: the dimensions and fact_market. Both schemas are rebuilt at every run, and the raw
 files are re-checked first: data with a critical quality failure never reaches silver.
 """
@@ -17,13 +18,14 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from pipeline import calendars, config, db, quality, raw, reference
-from pipeline.catalog import CATALOG, SOURCES, get
+from pipeline.catalog import CATALOG, EXECUTION, SOURCES, get
 
 log = logging.getLogger("transform")
 
 PRICE_LIKE = ("equity index", "commodity", "fx")
 VOL_WINDOW = 22  # observed trading days, about one month
 RANGE_FIELDS = ["open", "high", "low", "close"]
+BAR_FIELDS = ["open", "high", "low", "close", "adj_close", "volume"]
 CORRELATION_WINDOW = 250  # reporting days, about one year
 FACT_MARKET_COLUMNS = [
     "date",
@@ -41,11 +43,11 @@ FACT_MARKET_COLUMNS = [
 
 
 def build_silver(raws: dict[str, pd.DataFrame | None]) -> pd.DataFrame:
-    """Align every series (except cross-checks) on the reporting days, carrying values forward."""
+    """Align every series but cross-checks and single stocks on the reporting days, filling gaps forward."""
     observed = {}
     for series in CATALOG:
         table = raws.get(series.source)
-        if series.role == "cross-check" or table is None:
+        if series.role in ("cross-check", EXECUTION) or table is None:
             continue
         values = raw.series_values(table, series)
         if not values.empty:
@@ -102,11 +104,24 @@ def build_daily_range(yahoo: pd.DataFrame | None) -> pd.DataFrame:
     """Range-based variance of every Yahoo series in silver, on the days it was observed."""
     frames = []
     for series in CATALOG:
-        if series.source != "yahoo" or series.role == "cross-check" or yahoo is None:
+        if series.source != "yahoo" or series.role in ("cross-check", EXECUTION) or yahoo is None:
             continue
         estimate = range_variance(raw.series_fields(yahoo, series, RANGE_FIELDS).dropna())
         frames.append(estimate.rename_axis("date").reset_index().assign(instrument_id=series.instrument))
     columns = ["date", "instrument_id", "range_variance", "is_fallback"]
+    return pd.concat(frames, ignore_index=True)[columns] if frames else pd.DataFrame(columns=columns)
+
+
+def build_daily_bar(yahoo: pd.DataFrame | None) -> pd.DataFrame:
+    """Open, high, low, close and volume of the execution universe; a day without volume is left out."""
+    frames = []
+    for series in CATALOG:
+        if series.role != EXECUTION or yahoo is None:
+            continue
+        bars = raw.series_fields(yahoo, series, BAR_FIELDS).dropna()
+        bars = bars[bars["volume"] > 0].astype({"volume": "int64"})
+        frames.append(bars.rename_axis("date").reset_index().assign(instrument_id=series.instrument))
+    columns = ["date", "instrument_id", *BAR_FIELDS]
     return pd.concat(frames, ignore_index=True)[columns] if frames else pd.DataFrame(columns=columns)
 
 
@@ -266,11 +281,13 @@ def main(argv: list[str] | None = None) -> int:
 
     silver = build_silver(raws)
     daily_range = build_daily_range(raws["yahoo"])
+    daily_bar = build_daily_bar(raws["yahoo"])
     gold = build_gold(silver, args.as_of)
     with db.engine().begin() as conn:  # one transaction: readers never see a half-built schema
         db.run_sql_file(conn, "storage.sql")
         db.insert(conn, "silver", "market", silver)
         db.insert(conn, "silver", "daily_range", daily_range)
+        db.insert(conn, "silver", "daily_bar", daily_bar)
         for table, frame in gold.items():
             db.insert(conn, "gold", table, frame)
 
@@ -286,6 +303,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     fallbacks = daily_range.groupby("instrument_id")["is_fallback"].sum().to_dict()
     log.info("silver.daily_range: %d rows; fallback days by instrument: %s", len(daily_range), fallbacks)
+    log.info("silver.daily_bar: %d rows, %d stocks", len(daily_bar), daily_bar["instrument_id"].nunique())
     for table, frame in gold.items():
         log.info("gold.%s: %d rows", table, len(frame))
     return 0

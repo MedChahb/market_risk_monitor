@@ -52,6 +52,29 @@ def test_cross_check_series_stays_out_of_silver():
     assert set(silver["instrument_id"]) == {"CAC40"}
 
 
+def test_stocks_of_the_execution_universe_stay_out_of_silver_market():
+    silver = silver_for(raw_table("CAC40", XPAR), raw_table("TTE", XPAR))
+    assert set(silver["instrument_id"]) == {"CAC40"}
+
+
+def test_daily_bar_keeps_the_stocks_and_leaves_out_days_without_volume():
+    days = XPAR[:5]
+    rows = []
+    for instrument in ("TTE", "CAC40"):
+        for field in transform.BAR_FIELDS:
+            values = np.array([0.0, 1e6, 2e6, 1e6, 3e6]) if field == "volume" else np.full(len(days), 100.0)
+            rows.append(raw_table(instrument, days, values).assign(field=field))
+    bars = transform.build_daily_bar(pd.concat(rows, ignore_index=True))
+    assert set(bars["instrument_id"]) == {"TTE"}
+    assert list(bars["date"]) == list(days[1:]) and bars["volume"].dtype == "int64"
+
+
+def test_following_session_skips_weekends_and_holidays():
+    days = pd.DatetimeIndex(["2026-04-02", "2026-04-30", "2026-12-31"])
+    expected = pd.DatetimeIndex(["2026-04-07", "2026-05-04", "2027-01-04"])
+    assert calendars.following_sessions("XPAR", days).equals(expected)
+
+
 def test_dim_date_covers_full_years_with_a_trading_day_index():
     trading = calendars.reporting_days(pd.Timestamp("2025-01-02"), pd.Timestamp("2026-05-08"))
     dim = transform.build_dim_date(trading, date(2026, 5, 11)).set_index("date")

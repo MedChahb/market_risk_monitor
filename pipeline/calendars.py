@@ -34,3 +34,9 @@ def reporting_days(start: pd.Timestamp, end: pd.Timestamp) -> pd.DatetimeIndex:
     for code in REPORTING_CALENDARS:
         days = days.union(sessions(code, start, end))
     return days
+
+
+def following_sessions(code: str, days: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    """The first session strictly after each day."""
+    window = sessions(code, days.min(), days.max() + pd.Timedelta(days=14))
+    return window[window.searchsorted(days, side="right")]

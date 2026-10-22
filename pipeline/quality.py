@@ -18,11 +18,12 @@ import pandas as pd
 import pandera.pandas as pa
 
 from pipeline import calendars, config, files, raw
-from pipeline.catalog import CATALOG, FIELDS, SOURCES, Series, by_source, get, main_field
+from pipeline.catalog import CATALOG, EXECUTION, FIELDS, SOURCES, Series, by_source, get, main_field
 
 log = logging.getLogger("quality")
 
 MAX_DAILY_MOVE = 0.15  # largest real daily move since 2008: 12.4% (Euro Stoxx 50, 12 March 2020)
+MAX_STOCK_MOVE = 0.25  # single stocks: largest real move since 2008 is 22.2% (Airbus, 18 March 2020)
 YIELD_RANGE = (-2.0, 15.0)  # percent; AAA 10-year range since 2008: -0.82% to 4.78%
 STALE_DAYS = 3
 FX_TOLERANCE = 0.02  # about 3.6 daily std devs of EUR/USD; the ECB fixes at 14:15 CET, Yahoo later
@@ -38,6 +39,7 @@ RULES = {
     "large_move": WARNING,
     "late_data": WARNING,
     "fx_cross_source": WARNING,
+    "zero_volume": WARNING,
 }
 FLAG_COLUMNS = ["date", "instrument", "field", "value", "detail"]
 FACT_DQ_COLUMNS = ["run_id", "date", "source", "instrument", "rule", "severity", "passed", "n_failed"]
@@ -70,9 +72,11 @@ def applies(rule: str, series: Series) -> bool:
     if rule == "missing_trading_day":
         return series.calendar is not None
     if rule == "large_move":  # volatility indices and rates move by more than 15% routinely
-        return series.asset_class in ("equity index", "commodity", "fx")
+        return series.asset_class in ("equity index", "equity", "commodity", "fx")
     if rule == "fx_cross_source":
         return series.instrument == "EURUSD_YAHOO"
+    if rule == "zero_volume":  # only the execution models read volume
+        return series.role == EXECUTION
     return True
 
 
@@ -117,6 +121,11 @@ def check_non_positive(table: pd.DataFrame) -> pd.DataFrame:
     return flags_from_rows(prices[prices["value"] <= 0], "price is zero or negative")
 
 
+def check_zero_volume(table: pd.DataFrame) -> pd.DataFrame:
+    volumes = table[table["field"] == "volume"]
+    return flags_from_rows(volumes[volumes["value"] <= 0], "no shares traded: the day is treated as missing")
+
+
 def check_yield_range(table: pd.DataFrame) -> pd.DataFrame:
     low, high = YIELD_RANGE
     outside = table[(table["value"] < low) | (table["value"] > high)]
@@ -138,8 +147,9 @@ def check_stale(values: pd.Series, series: Series) -> pd.DataFrame:
 
 
 def check_large_move(values: pd.Series, series: Series) -> pd.DataFrame:
+    limit = MAX_STOCK_MOVE if series.asset_class == "equity" else MAX_DAILY_MOVE
     moves = values.pct_change()
-    large = moves[moves.abs() > MAX_DAILY_MOVE]
+    large = moves[moves.abs() > limit]
     return flags_from_values(
         values[large.index], series, [f"{move:+.1%} vs previous value" for move in large]
     )
@@ -212,6 +222,7 @@ def evaluate(
             "duplicate_key": check_duplicates(table),
             "non_positive_price": check_non_positive(table),
             "yield_out_of_range": check_yield_range(table),
+            "zero_volume": check_zero_volume(table),
         }
         for series in by_source(source):
             for rule, found in table_rules.items():

@@ -52,6 +52,8 @@ def test_tidy_yahoo_drops_missing_values():
         (SPX, datetime(2026, 10, 21, 17, 0, tzinfo=UTC), False),  # 13:00 New York, open
         (SPX, datetime(2026, 10, 21, 21, 0, tzinfo=UTC), True),  # 17:00 New York, closed
         (EURUSD_YAHOO, datetime(2026, 10, 21, 22, 59, tzinfo=UTC), False),  # 23:59 London: FX still trading
+        (get("TTE"), datetime(2026, 10, 21, 14, 0, tzinfo=UTC), False),  # 16:00 Paris, before the auction
+        (get("TTE"), datetime(2026, 10, 21, 17, 0, tzinfo=UTC), True),  # 19:00 Paris, closed
     ],
 )
 def test_live_bar_is_dropped_until_the_market_closes(series, now, keeps_today):

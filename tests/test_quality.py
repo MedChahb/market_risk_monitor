@@ -94,6 +94,25 @@ def test_large_move_is_a_warning_not_a_blocker():
     assert quality.gate(fact, flags, "warning")[0].startswith("WARNING large_move | yahoo | CAC40")
 
 
+@pytest.mark.parametrize(("jump", "expected"), [(1.2, 0), (1.3, 1)])
+def test_single_stocks_are_flagged_only_above_a_25_percent_move(jump, expected):
+    values = np.linspace(100, 110, len(SESSIONS))
+    values[20:] *= jump
+    fact, _ = run(yahoo=raw_table("TTE", SESSIONS, values))
+    assert n_failed(fact, "TTE", "large_move") == expected
+
+
+def test_zero_volume_is_a_warning_for_stocks_only():
+    closes = raw_table("TTE", SESSIONS)
+    volumes = raw_table("TTE", SESSIONS, np.r_[0.0, np.full(len(SESSIONS) - 1, 1e6)]).assign(field="volume")
+    index_volumes = raw_table("CAC40", SESSIONS, np.zeros(len(SESSIONS))).assign(field="volume")
+    yahoo = pd.concat([closes, volumes, raw_table("CAC40", SESSIONS), index_volumes], ignore_index=True)
+    fact, flags = run(yahoo=yahoo)
+    assert n_failed(fact, "TTE", "zero_volume") == 1
+    assert fact[(fact["instrument"] == "CAC40") & (fact["rule"] == "zero_volume")].empty
+    assert quality.gate(fact, flags, "critical") == []
+
+
 def test_late_data_compares_with_the_previous_session():
     fact, flags = run(yahoo=raw_table("CAC40", SESSIONS[SESSIONS <= "2026-10-15"]))
     assert n_failed(fact, "CAC40", "late_data") == 1
