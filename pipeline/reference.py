@@ -101,7 +101,7 @@ METHODS = [
     {
         "method_id": "param_champion",
         "name": "Parametric (GJR)",
-        "description": "Normal quantile, GJR-GARCH volatility (the volatility champion)",
+        "description": "Normal quantile, GJR-GARCH volatility (the registry's champion)",
     },
     {
         "method_id": "fhs",
