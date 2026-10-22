@@ -264,7 +264,7 @@
         "howCreated": "User"
       },
       {
-        "name": "not_the_yield",
+        "name": "book_assets",
         "field": {
           "Column": {
             "Expression": {
@@ -308,6 +308,27 @@
                           {
                             "Literal": {
                               "Value": "'EUR AAA 10Y'"
+                            }
+                          }
+                        ],
+                        [
+                          {
+                            "Literal": {
+                              "Value": "'EUR AAA 2Y'"
+                            }
+                          }
+                        ],
+                        [
+                          {
+                            "Literal": {
+                              "Value": "'VIX'"
+                            }
+                          }
+                        ],
+                        [
+                          {
+                            "Literal": {
+                              "Value": "'US 10Y-2Y'"
                             }
                           }
                         ]
