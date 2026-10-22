@@ -41,3 +41,43 @@ relationship be7a3282-35c7-564c-8cc0-a8ca3544a4b8
 relationship 9d9cb5f6-030a-523e-aaf4-949e6c44bf92
 	fromColumn: fact_freshness.instrument
 	toColumn: dim_instrument.instrument_id
+
+relationship 6dea027d-1c6b-532d-86c6-d030e29a176b
+	fromColumn: fact_var.for_date
+	toColumn: dim_date.Date
+
+relationship 9ee335a9-62ff-5d0a-bd80-1ae18e47e1b3
+	fromColumn: fact_var.method_id
+	toColumn: dim_method.method_id
+
+relationship 599847b0-cedd-5a38-a7e2-7f931ff051a5
+	fromColumn: fact_backtest.for_date
+	toColumn: dim_date.Date
+
+relationship 162128c5-0eaa-5f97-a670-b3988e24a3f4
+	fromColumn: fact_backtest.method_id
+	toColumn: dim_method.method_id
+
+relationship 6520861e-aff9-5286-9461-e38983715f76
+	fromColumn: fact_backtest_summary.method_id
+	toColumn: dim_method.method_id
+
+relationship d657c2d3-f2d9-5697-b2e3-74a79c7482b4
+	fromColumn: fact_forecast.date
+	toColumn: dim_date.Date
+
+relationship 47cfbc6d-f0f8-523f-8b51-229a9c188b11
+	fromColumn: fact_forecast.series_id
+	toColumn: dim_series.series_id
+
+relationship b24dde9a-796f-5313-a207-e8d0f985855f
+	fromColumn: fact_forecast.model_id
+	toColumn: dim_model.model_id
+
+relationship 516c65d7-65ab-54e0-9df8-3c41a316fd1f
+	fromColumn: fact_forecast_evaluation.series_id
+	toColumn: dim_series.series_id
+
+relationship 06b3ff52-1ce1-5933-93c6-d0a8fbccf748
+	fromColumn: fact_forecast_evaluation.model_id
+	toColumn: dim_model.model_id

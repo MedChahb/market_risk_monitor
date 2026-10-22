@@ -1,0 +1,95 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "name": "models",
+  "displayName": "Models",
+  "displayOption": "FitToPage",
+  "height": 1080,
+  "width": 1920,
+  "visualInteractions": [
+    {
+      "source": "model",
+      "target": "qlike_by_model",
+      "type": "NoFilter"
+    },
+    {
+      "source": "model",
+      "target": "qlike_matrix",
+      "type": "NoFilter"
+    },
+    {
+      "source": "model",
+      "target": "diebold_mariano",
+      "type": "NoFilter"
+    },
+    {
+      "source": "series",
+      "target": "qlike_matrix",
+      "type": "NoFilter"
+    },
+    {
+      "source": "period",
+      "target": "forecast_against_realised",
+      "type": "NoFilter"
+    },
+    {
+      "source": "forecast_against_realised",
+      "target": "qlike_by_model",
+      "type": "NoFilter"
+    },
+    {
+      "source": "forecast_against_realised",
+      "target": "qlike_matrix",
+      "type": "NoFilter"
+    },
+    {
+      "source": "forecast_against_realised",
+      "target": "diebold_mariano",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_by_model",
+      "target": "forecast_against_realised",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_by_model",
+      "target": "qlike_matrix",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_by_model",
+      "target": "diebold_mariano",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_matrix",
+      "target": "forecast_against_realised",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_matrix",
+      "target": "qlike_by_model",
+      "type": "NoFilter"
+    },
+    {
+      "source": "qlike_matrix",
+      "target": "diebold_mariano",
+      "type": "NoFilter"
+    },
+    {
+      "source": "diebold_mariano",
+      "target": "forecast_against_realised",
+      "type": "NoFilter"
+    },
+    {
+      "source": "diebold_mariano",
+      "target": "qlike_by_model",
+      "type": "NoFilter"
+    },
+    {
+      "source": "diebold_mariano",
+      "target": "qlike_matrix",
+      "type": "NoFilter"
+    }
+  ]
+}

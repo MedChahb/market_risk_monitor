@@ -1,0 +1,52 @@
+table fact_var
+	lineageTag: 9cea3e28-a5d9-5c98-9162-a6d1b1165843
+
+	column for_date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: d2e16274-27cb-5986-b465-b059a7b1cf36
+		summarizeBy: none
+		sourceColumn: for_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column method_id
+		dataType: string
+		isHidden
+		lineageTag: c5be5357-c77b-5b98-99c3-3c95f304df33
+		summarizeBy: none
+		sourceColumn: method_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column var_99_eur
+		dataType: double
+		isHidden
+		lineageTag: bb615ff7-3916-5a92-ba91-c39a83c62f87
+		summarizeBy: none
+		sourceColumn: var_99_eur
+
+		annotation SummarizationSetBy = Automatic
+
+	column es_975_eur
+		dataType: double
+		isHidden
+		lineageTag: 3d16e44f-274e-5628-805a-77cc4c1b845d
+		summarizeBy: none
+		sourceColumn: es_975_eur
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_var = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_var.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"for_date", type date}, {"method_id", type text}, {"var_99_eur", type number}, {"es_975_eur", type number}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

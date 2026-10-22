@@ -1,0 +1,79 @@
+table fact_backtest
+	lineageTag: 48f98394-cdd3-5bc3-8d1d-de4fc89de1fe
+
+	column for_date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: 392feefe-faeb-5aa4-b2e0-e28bbffce605
+		summarizeBy: none
+		sourceColumn: for_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column method_id
+		dataType: string
+		isHidden
+		lineageTag: d6c1378f-981c-5ae2-9ed6-7353480ad0e2
+		summarizeBy: none
+		sourceColumn: method_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column var_99_eur
+		dataType: double
+		isHidden
+		lineageTag: 1b4ac168-c57c-55b4-9989-68bd80fa36ad
+		summarizeBy: none
+		sourceColumn: var_99_eur
+
+		annotation SummarizationSetBy = Automatic
+
+	column pnl_eur
+		dataType: double
+		isHidden
+		lineageTag: 305ce53e-2b7e-536a-8238-fc9c99856196
+		summarizeBy: none
+		sourceColumn: pnl_eur
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_exception
+		dataType: boolean
+		isHidden
+		lineageTag: 2128eefa-d929-52ac-8b3d-db8d97e10f6f
+		summarizeBy: none
+		sourceColumn: is_exception
+
+		annotation SummarizationSetBy = Automatic
+
+	column exceptions_250d
+		dataType: int64
+		isHidden
+		lineageTag: b0d9f143-94ad-5f3a-b04e-e5bba37335e3
+		summarizeBy: none
+		sourceColumn: exceptions_250d
+
+		annotation SummarizationSetBy = Automatic
+
+	column zone
+		dataType: string
+		isHidden
+		lineageTag: b1085e08-2dcf-5bf2-819c-6379d47c3695
+		summarizeBy: none
+		sourceColumn: zone
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_backtest = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_backtest.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"for_date", type date}, {"method_id", type text}, {"var_99_eur", type number}, {"pnl_eur", type number}, {"is_exception", type logical}, {"exceptions_250d", Int64.Type}, {"zone", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
