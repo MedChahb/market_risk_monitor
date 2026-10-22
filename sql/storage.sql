@@ -42,6 +42,7 @@ CREATE TABLE gold.dim_source (
 CREATE TABLE gold.dim_instrument (
     instrument_id TEXT    PRIMARY KEY,
     name          TEXT    NOT NULL,
+    short_name    TEXT    NOT NULL,  -- label for charts and matrix headers
     asset_class   TEXT    NOT NULL,
     currency      TEXT    NOT NULL,
     unit          TEXT    NOT NULL,
@@ -80,6 +81,7 @@ CREATE TABLE gold.fact_market (
     change_bp     DOUBLE PRECISION,  -- daily change in basis points: rates
     vol_22d       DOUBLE PRECISION,  -- annualised volatility of the last 22 observed daily returns
     vol_22d_bp    DOUBLE PRECISION,  -- rates: annualised volatility of the last 22 daily changes, in bp
+    drawdown      DOUBLE PRECISION,  -- price-like series: fall below the highest level since the first date
     is_filled     BOOLEAN NOT NULL,
     fill_reason   TEXT,
     PRIMARY KEY (date, instrument_id)
