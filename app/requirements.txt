@@ -1,0 +1,7 @@
+# Public app on Streamlit Community Cloud: no database, MLflow or PyTorch.
+streamlit==1.66.1
+plotly==7.1.0
+pandas==3.0.6
+numpy==2.5.4
+scipy==1.18.1
+pyarrow==25.0.1
