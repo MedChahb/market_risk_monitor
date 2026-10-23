@@ -260,6 +260,18 @@ Key: (`date`, `method`, `fit`).
 
 **`fact_anomaly_evaluation`**: the anomaly detector measured on injected errors, rebuilt by [`pipeline/anomaly_evaluation.py`](../pipeline/anomaly_evaluation.py) at every run. One row per layer (`layer_order`, `layer`: rules, robust z-score, Isolation Forest at 0.1% and 1% of real days flagged, production): `n_flags`, `precision` (share of flags on a wrong day or the session after it) and the recall of each error type (`recall_spike`, `recall_frozen`, `recall_decimal_shift`, `recall_split`, `recall_missing_days`, `recall_roll_jump`), with `n_per_type` (200) and `seed`. **`fact_anomaly_top_moves`**: the ten largest real daily log returns of the fourteen Yahoo price series (`date`, `instrument_id`, `log_return`, `robust_z`) and `flagged_by`, the layers that flag them (`none` for a correct detector).
 
+### Monitoring: `data/monitoring/*.parquet`, loaded into gold by publish and by monitor
+
+Written by [`pipeline/monitor.py`](../pipeline/monitor.py) after every Jenkins run and by [`pipeline/promotion.py`](../pipeline/promotion.py) every Saturday; the gold tables have no foreign keys, so a failed run is recorded even when it left the other gold tables half built.
+
+**`fact_runs`**: one row per Jenkins run: `run_id` (Jenkins `BUILD_TAG`, also the quality run id), `job` (`nightly` or `retrain`), `started_at`, `finished_at`, `status` (`SUCCESS`, `FAILURE`, `UNSTABLE`, `ABORTED`), `stage_reached` (the last stage started, the failed one when the run failed), `rows_loaded` (rows in gold after a successful run), `dq_critical` and `dq_warnings` (failed rules of the run's quality gate), `detail` (the promotion decision, or the failed stage).
+
+**`fact_drift`**: per successful night run and feature, the PSI of the book's daily return, its return over the previous day's EWMA volatility, and the three HAR terms of realised variance, over the last 250 sessions against 2008-2017 (`psi`, `status`: stable below 0.10, moderate to 0.25, significant above), with `window_start` and `window_end`. Levels such as the VIX or the curve slopes are not measured: their PSI against 2008-2017 exceeds 6 whatever the window.
+
+**`fact_model_monitor`**: rolling 63-session mean losses, recomputed at each successful night run: `qlike_63d_book_volatility` for GJR-GARCH and HAR, `mse_log_63d_volume` (squared log error of next-session volume, mean of the ten stocks) for XGBoost and the 20-day ADV (`date`, `metric`, `model_id`, `value`).
+
+**`fact_promotion`**: one row per Saturday decision on the volatility model of the parametric VaR: the window (`window_start`, `window_end`, 250 days), `champion_before`, `challenger` (lowest 1-day QLIKE among the other candidates), their QLIKE against the next day's squared book return, the exceptions and Basel zone of their normal VaR 99%, `promoted` (lower QLIKE and zone no worse) and `champion_after`. The champion is also the `champion` alias of the registered model `var-volatility` in the MLflow registry (`data/mlflow.db`).
+
 ### `fact_dq`: one row per run, instrument and rule
 
 | Column | Type | Description |
