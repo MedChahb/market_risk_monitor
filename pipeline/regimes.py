@@ -20,7 +20,7 @@ from scipy import stats
 from sklearn.mixture import GaussianMixture
 from sqlalchemy import text
 
-from pipeline import backtest, config, db, evaluation
+from pipeline import config, db, evaluation, risk
 from pipeline.reference import REGIMES
 from pipeline.vol_models import FORECAST_FILE
 
@@ -209,8 +209,8 @@ def backtest_by_regime(fact_backtest: pd.DataFrame, regimes: pd.DataFrame) -> pd
                     "regime_id": int(regime_id),
                     "n_days": len(flags),
                     "n_exceptions": int(flags.sum()),
-                    "expected_exceptions": len(flags) * backtest.EXCEPTION_RATE,
-                    "kupiec_p": backtest.kupiec(flags)[1],
+                    "expected_exceptions": len(flags) * risk.EXCEPTION_RATE,
+                    "kupiec_p": risk.kupiec(flags)[1],
                 }
             )
     return pd.DataFrame(rows)

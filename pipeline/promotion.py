@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 
-from pipeline import backtest, config, db, evaluation, files, registry, var
+from pipeline import config, db, evaluation, files, registry, risk, var
 from pipeline.book import BOOK_NOTIONAL
 
 log = logging.getLogger("promotion")
@@ -34,14 +34,14 @@ def score_candidates(pnl: pd.Series, variances: dict[str, pd.Series], window: in
     rows = []
     for model_id, variance in variances.items():
         days = variance.dropna().index.intersection(next_squared.dropna().index)[-window:]
-        value_at_risk = var.NORMAL_VAR * np.sqrt(variance.loc[days]) / 100 * BOOK_NOTIONAL
+        value_at_risk = risk.NORMAL_VAR * np.sqrt(variance.loc[days]) / 100 * BOOK_NOTIONAL
         n_exceptions = int((next_pnl.loc[days] < -value_at_risk).sum())
         rows.append(
             {
                 "model_id": model_id,
                 "qlike": evaluation.qlike(next_squared.loc[days], variance.loc[days]).mean(),
                 "n_exceptions": n_exceptions,
-                "zone": backtest.zone(n_exceptions),
+                "zone": risk.zone(n_exceptions),
                 "first_day": days[0],
                 "last_day": days[-1],
             }

@@ -9,28 +9,18 @@ import argparse
 import logging
 import sys
 
-import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from scipy import stats
 from sqlalchemy import text
 
-from pipeline import config, db
-from pipeline.var import VAR_LEVEL
+from pipeline import config, db, risk
 
 log = logging.getLogger("backtest")
 
-EXCEPTION_RATE = 1 - VAR_LEVEL
-TRAFFIC_WINDOW = 250  # days in the Basel traffic-light count
-YELLOW, RED = 5, 10  # exceptions in 250 days that start the yellow and red zones
 STRESS_YEARS = (2020, 2022)  # tested on their own as well as over the whole period
 VAR_QUERY = text("SELECT for_date, method_id, var_99_eur FROM gold.fact_var")
 PNL_QUERY = text("SELECT date, SUM(pnl_eur) AS pnl_eur FROM gold.fact_pnl GROUP BY date")
-
-
-def zone(n_exceptions: float) -> str:
-    """Basel traffic-light zone of an exception count over 250 days."""
-    return "red" if n_exceptions >= RED else "yellow" if n_exceptions >= YELLOW else "green"
 
 
 def build_fact_backtest(fact_var: pd.DataFrame, pnl: pd.Series) -> pd.DataFrame:
@@ -40,40 +30,11 @@ def build_fact_backtest(fact_var: pd.DataFrame, pnl: pd.Series) -> pd.DataFrame:
         is_exception=lambda d: d["pnl_eur"] < -d["var_99_eur"]
     )
     rolling = daily.groupby("method_id")["is_exception"].transform(
-        lambda flags: flags.astype(int).rolling(TRAFFIC_WINDOW).sum()
+        lambda flags: flags.astype(int).rolling(risk.TRAFFIC_WINDOW).sum()
     )
     daily = daily.assign(exceptions_250d=rolling.astype("Int64"))
-    daily["zone"] = daily["exceptions_250d"].map(lambda count: zone(count) if pd.notna(count) else None)
+    daily["zone"] = daily["exceptions_250d"].map(lambda count: risk.zone(count) if pd.notna(count) else None)
     return daily.reset_index(drop=True)
-
-
-def log_likelihood(n_hits: int, n_misses: int, probability: float) -> float:
-    """Bernoulli log-likelihood, with 0 x log(0) = 0."""
-    hits = n_hits * np.log(probability) if n_hits else 0.0
-    misses = n_misses * np.log(1 - probability) if n_misses else 0.0
-    return hits + misses
-
-
-def kupiec(exceptions: np.ndarray, rate: float = EXCEPTION_RATE) -> tuple[float, float]:
-    """Proportion-of-failures likelihood ratio and p-value (chi-squared, 1 degree of freedom)."""
-    n, x = len(exceptions), int(exceptions.sum())
-    ratio = -2 * (log_likelihood(x, n - x, rate) - log_likelihood(x, n - x, x / n))
-    return ratio, stats.chi2.sf(ratio, df=1)
-
-
-def christoffersen(exceptions: np.ndarray) -> tuple[float, float]:
-    """Independence likelihood ratio and p-value: is an exception more likely the day after another?"""
-    previous, current = exceptions[:-1].astype(bool), exceptions[1:].astype(bool)
-    n01, n00 = int((~previous & current).sum()), int((~previous & ~current).sum())
-    n11, n10 = int((previous & current).sum()), int((previous & ~current).sum())
-    if n01 + n11 == 0:
-        return 0.0, 1.0  # no exception after the first day: nothing to cluster
-    after_calm, after_exception = n01 / (n00 + n01), n11 / (n10 + n11) if n10 + n11 else 0.0
-    overall = (n01 + n11) / (n00 + n01 + n10 + n11)
-    restricted = log_likelihood(n01 + n11, n00 + n10, overall)
-    unrestricted = log_likelihood(n01, n00, after_calm) + log_likelihood(n11, n10, after_exception)
-    ratio = -2 * (restricted - unrestricted)
-    return ratio, stats.chi2.sf(ratio, df=1)
 
 
 def summary(fact_backtest: pd.DataFrame) -> pd.DataFrame:
@@ -87,8 +48,8 @@ def summary(fact_backtest: pd.DataFrame) -> pd.DataFrame:
         }
         for period, part in periods.items():
             flags = part["is_exception"].to_numpy()
-            kupiec_ratio, kupiec_p = kupiec(flags)
-            independence_ratio, independence_p = christoffersen(flags)
+            kupiec_ratio, kupiec_p = risk.kupiec(flags)
+            independence_ratio, independence_p = risk.christoffersen(flags)
             counts = part["exceptions_250d"].dropna()
             rows.append(
                 {
@@ -96,12 +57,12 @@ def summary(fact_backtest: pd.DataFrame) -> pd.DataFrame:
                     "period": period,
                     "n_days": len(flags),
                     "n_exceptions": int(flags.sum()),
-                    "expected_exceptions": len(flags) * EXCEPTION_RATE,
+                    "expected_exceptions": len(flags) * risk.EXCEPTION_RATE,
                     "kupiec_p": kupiec_p,
                     "christoffersen_p": independence_p,
                     "conditional_coverage_p": stats.chi2.sf(kupiec_ratio + independence_ratio, df=2),
-                    "worst_zone": zone(counts.max()) if len(counts) else None,
-                    "zone_at_end": zone(counts.iloc[-1]) if len(counts) else None,
+                    "worst_zone": risk.zone(counts.max()) if len(counts) else None,
+                    "zone_at_end": risk.zone(counts.iloc[-1]) if len(counts) else None,
                 }
             )
     return pd.DataFrame(rows)

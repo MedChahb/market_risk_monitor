@@ -1,61 +1,13 @@
 import numpy as np
 import pandas as pd
-import pytest
 
 from pipeline import var
-from pipeline.book import BOOK_NOTIONAL
 
 DATES = pd.bdate_range("2011-01-03", periods=900)
 
 
 def pnl_series(seed: int = 0) -> pd.Series:
     return pd.Series(np.random.default_rng(seed).standard_t(4, size=len(DATES)) * 50_000, index=DATES)
-
-
-def test_normal_multipliers_are_the_textbook_values():
-    assert var.NORMAL_VAR == pytest.approx(2.326, abs=1e-3)
-    assert var.NORMAL_ES == pytest.approx(2.338, abs=1e-3)
-
-
-def test_tail_risk_reads_the_one_percent_quantile_and_the_mean_beyond_two_and_a_half():
-    losses = -np.arange(1.0, 1001.0)  # P&Ls of -1 to -1000
-    value_at_risk, shortfall = var.tail_risk(losses)
-    assert value_at_risk == pytest.approx(-np.quantile(losses, 0.01))
-    assert shortfall == pytest.approx(np.mean(np.arange(976.0, 1001.0)))  # the 25 worst P&Ls
-    assert (
-        shortfall >= -np.quantile(losses, 0.025) and value_at_risk > 0
-    )  # ES is beyond the VaR of its own level
-
-
-def test_historical_var_uses_the_last_250_pnls_including_the_current_day():
-    pnl = pnl_series()
-    estimates = var.historical(pnl)
-    day = estimates.index[100]
-    window = pnl.loc[:day].to_numpy()[-250:]
-    assert estimates.loc[day, "var"] == pytest.approx(-np.quantile(window, 0.01))
-    assert estimates.index[0] == pnl.index[249]
-
-
-def test_parametric_var_scales_the_volatility_of_the_book():
-    variance = pd.Series([1.0, 4.0])  # daily volatility of 1% and 2%
-    estimates = var.parametric(variance)
-    assert estimates["var"].tolist() == pytest.approx(
-        [2.326 * 0.01 * BOOK_NOTIONAL, 2.326 * 0.02 * BOOK_NOTIONAL], rel=1e-3
-    )
-    assert (estimates["es"] > estimates["var"]).all()
-
-
-def test_filtered_historical_simulation_rescales_past_shocks_to_tomorrows_volatility():
-    rng = np.random.default_rng(1)
-    shocks = rng.standard_t(5, size=len(DATES))
-    variance = pd.Series(1.0, index=DATES)
-    returns = pd.Series(shocks, index=DATES)  # volatility 1%, so the returns are the shocks
-    calm = var.filtered_historical(returns, variance)
-    stressed = var.filtered_historical(returns, variance.where(variance.index != DATES[-1], 4.0))
-    last = DATES[-1]
-    assert calm.loc[last, "var"] == pytest.approx(-np.quantile(shocks[-500:], 0.01) / 100 * BOOK_NOTIONAL)
-    assert stressed.loc[last, "var"] == pytest.approx(2 * calm.loc[last, "var"])  # twice the volatility
-    assert calm.index[0] == DATES[500]  # 500 standardised returns needed, the first day has none
 
 
 def test_a_figure_computed_at_the_close_covers_the_next_day():

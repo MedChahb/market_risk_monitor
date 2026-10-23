@@ -1,59 +1,8 @@
 import numpy as np
 import pandas as pd
 import pytest
-from scipy.stats import chi2
 
 from pipeline import backtest
-
-
-def guide_kupiec_pof(exceptions: np.ndarray, p: float = 0.01) -> tuple[float, float]:
-    """The reference implementation given in the project guide."""
-    n, x = len(exceptions), int(exceptions.sum())
-
-    def loglik(prob: float) -> float:
-        a = (n - x) * np.log(1 - prob) if prob < 1 else (0.0 if x == n else -np.inf)
-        b = x * np.log(prob) if prob > 0 else (0.0 if x == 0 else -np.inf)
-        return a + b
-
-    lr = -2 * (loglik(p) - loglik(x / n))
-    return lr, chi2.sf(lr, df=1)
-
-
-@pytest.mark.parametrize("n_exceptions", [0, 1, 3, 10, 25, 250])
-def test_kupiec_matches_the_guide_reference(n_exceptions):
-    flags = np.zeros(1000, dtype=bool)
-    flags[np.random.default_rng(n_exceptions).choice(1000, n_exceptions, replace=False)] = True
-    assert backtest.kupiec(flags) == pytest.approx(guide_kupiec_pof(flags))
-
-
-def test_kupiec_accepts_the_promised_rate_and_rejects_too_many_or_too_few():
-    exact = np.zeros(1000, dtype=bool)
-    exact[::100] = True  # 10 exceptions in 1000 days: exactly 1%
-    assert backtest.kupiec(exact)[0] == pytest.approx(0.0, abs=1e-9)
-    too_many = np.zeros(1000, dtype=bool)
-    too_many[:30] = True
-    assert backtest.kupiec(too_many)[1] < 0.05
-    assert backtest.kupiec(np.zeros(1000, dtype=bool))[1] < 0.05  # no exception in 1000 days: too cautious
-
-
-def test_christoffersen_flags_exceptions_that_arrive_in_clusters():
-    spread = np.zeros(1000, dtype=bool)
-    spread[50::100] = True
-    clustered = np.zeros(1000, dtype=bool)
-    clustered[500:510] = True  # the same 10 exceptions, in one burst
-    assert backtest.christoffersen(spread)[1] > 0.5
-    assert backtest.christoffersen(clustered)[1] < 0.001
-
-
-def test_christoffersen_without_exceptions_finds_nothing_to_test():
-    assert backtest.christoffersen(np.zeros(500, dtype=bool)) == (0.0, 1.0)
-
-
-@pytest.mark.parametrize(
-    ("count", "expected"), [(0, "green"), (4, "green"), (5, "yellow"), (9, "yellow"), (10, "red")]
-)
-def test_traffic_light_boundaries(count, expected):
-    assert backtest.zone(count) == expected
 
 
 def test_an_exception_is_a_loss_strictly_above_the_var_and_the_live_day_is_left_out():

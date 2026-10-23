@@ -20,7 +20,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import text
 
-from pipeline import config, db, evaluation, files, publish, vol_models
+from pipeline import config, db, evaluation, files, publish, risk, vol_models
 
 log = logging.getLogger("monitor")
 
@@ -56,7 +56,7 @@ def drift_status(value: float) -> str:
 def drift_features(returns: pd.Series) -> pd.DataFrame:
     """The book's daily return, the return over the previous day's EWMA volatility (stable if the
     volatility forecast stays calibrated), and the HAR terms of realised variance."""
-    standardised = returns / np.sqrt(vol_models.ewma_variance(returns).shift())
+    standardised = returns / np.sqrt(risk.ewma_variance(returns).shift())
     har_terms = vol_models.daily_weekly_monthly(returns**2, vol_models.HAR_COLUMNS)
     return har_terms.assign(**{"return": returns, "standardised_return": standardised})
 
