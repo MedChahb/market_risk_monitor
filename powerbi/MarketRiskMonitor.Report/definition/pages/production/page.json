@@ -1,0 +1,110 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "name": "production",
+  "displayName": "Production",
+  "displayOption": "FitToPage",
+  "height": 1080,
+  "width": 1920,
+  "visualInteractions": [
+    {
+      "source": "runs",
+      "target": "drift",
+      "type": "NoFilter"
+    },
+    {
+      "source": "runs",
+      "target": "rolling_volatility_error",
+      "type": "NoFilter"
+    },
+    {
+      "source": "runs",
+      "target": "rolling_volume_error",
+      "type": "NoFilter"
+    },
+    {
+      "source": "runs",
+      "target": "promotions",
+      "type": "NoFilter"
+    },
+    {
+      "source": "drift",
+      "target": "runs",
+      "type": "NoFilter"
+    },
+    {
+      "source": "drift",
+      "target": "rolling_volatility_error",
+      "type": "NoFilter"
+    },
+    {
+      "source": "drift",
+      "target": "rolling_volume_error",
+      "type": "NoFilter"
+    },
+    {
+      "source": "drift",
+      "target": "promotions",
+      "type": "NoFilter"
+    },
+    {
+      "source": "rolling_volatility_error",
+      "target": "runs",
+      "type": "NoFilter"
+    },
+    {
+      "source": "rolling_volatility_error",
+      "target": "drift",
+      "type": "NoFilter"
+    },
+    {
+      "source": "rolling_volatility_error",
+      "target": "rolling_volume_error",
+      "type": "NoFilter"
+    },
+    {
+      "source": "rolling_volatility_error",
+      "target": "promotions",
+      "type": "NoFilter"
+    },
+    {
+      "source": "rolling_volume_error",
+      "target": "runs",
+      "type": "NoFilter"
+    },
+    {
+      "source": "rolling_volume_error",
+      "target": "drift",
+      "type": "NoFilter"
+    },
+    {
+      "source": "rolling_volume_error",
+      "target": "rolling_volatility_error",
+      "type": "NoFilter"
+    },
+    {
+      "source": "rolling_volume_error",
+      "target": "promotions",
+      "type": "NoFilter"
+    },
+    {
+      "source": "promotions",
+      "target": "runs",
+      "type": "NoFilter"
+    },
+    {
+      "source": "promotions",
+      "target": "drift",
+      "type": "NoFilter"
+    },
+    {
+      "source": "promotions",
+      "target": "rolling_volatility_error",
+      "type": "NoFilter"
+    },
+    {
+      "source": "promotions",
+      "target": "rolling_volume_error",
+      "type": "NoFilter"
+    }
+  ]
+}

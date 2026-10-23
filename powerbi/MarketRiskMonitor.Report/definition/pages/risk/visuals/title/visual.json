@@ -18,7 +18,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Filtered historical simulation: VaR 99% of 100 k€ for 21 Oct 2026 (1.0% of the book); 38 exceptions in 3,823 days for 38 expected'"
+                  "Value": "'Filtered historical simulation: VaR 99% of 97 k€ for 22 Oct 2026 (1.0% of the book); 38 exceptions in 3,824 days for 38 expected'"
                 }
               }
             }
@@ -48,7 +48,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Filtered historical simulation: VaR 99% of 100 k€ for 21 Oct 2026 (1.0% of the book); 38 exceptions in 3,823 days for 38 expected",
+                    "value": "Filtered historical simulation: VaR 99% of 97 k€ for 22 Oct 2026 (1.0% of the book); 38 exceptions in 3,824 days for 38 expected",
                     "textStyle": {
                       "fontWeight": "bold",
                       "fontSize": "18pt",

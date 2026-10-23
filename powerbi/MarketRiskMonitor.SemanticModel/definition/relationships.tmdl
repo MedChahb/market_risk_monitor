@@ -102,6 +102,14 @@ relationship e40cd38d-ca42-5d86-bcb7-ebfd7abfef05
 	fromColumn: fact_forecast_regime.regime_id
 	toColumn: dim_regime.regime_id
 
+relationship 21e15ff5-1629-57a2-9be1-c7786d9f74af
+	fromColumn: fact_model_monitor.date
+	toColumn: dim_date.Date
+
+relationship 6eb5642a-0b5a-537b-94da-5a11a543ae6d
+	fromColumn: fact_model_monitor.model_id
+	toColumn: dim_model.model_id
+
 relationship a9daa7a2-d978-5456-9428-317a310573f2
 	fromColumn: fact_volume_forecast.date
 	toColumn: dim_date.Date

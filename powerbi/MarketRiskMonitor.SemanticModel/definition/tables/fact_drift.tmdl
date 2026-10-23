@@ -1,0 +1,78 @@
+table fact_drift
+	lineageTag: 9d071a12-3322-51fb-8a52-6b95e82e7032
+
+	column run_id
+		dataType: string
+		isHidden
+		lineageTag: bda9b047-6457-5103-9a47-b5d29a8f39ef
+		summarizeBy: none
+		sourceColumn: run_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Measured At (UTC)'
+		dataType: dateTime
+		formatString: dd mmm yyyy hh:nn
+		lineageTag: c1fd1468-81ac-52b5-bc74-daecb217f451
+		summarizeBy: none
+		sourceColumn: measured_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column Feature
+		dataType: string
+		lineageTag: ef8bc47d-8901-5c8a-b1a3-981dc764a8dc
+		summarizeBy: none
+		sourceColumn: feature
+
+		annotation SummarizationSetBy = Automatic
+
+	column PSI
+		dataType: double
+		formatString: 0.000
+		lineageTag: 5b1e2966-c8c1-5a6d-b031-9e706faa78c0
+		summarizeBy: none
+		sourceColumn: psi
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Drift Status'
+		dataType: string
+		lineageTag: 4ac07d96-fc51-5ca1-b8fc-90205ed20a0d
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Window Start'
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: dddff473-ebf4-595c-8747-dd6fbb554fbc
+		summarizeBy: none
+		sourceColumn: window_start
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Window End'
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 37feca67-1885-5660-98e0-948044d8a995
+		summarizeBy: none
+		sourceColumn: window_end
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition fact_drift = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_drift.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"run_id", type text}, {"measured_at", type datetime}, {"feature", type text}, {"psi", type number}, {"status", type text}, {"window_start", type date}, {"window_end", type date}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

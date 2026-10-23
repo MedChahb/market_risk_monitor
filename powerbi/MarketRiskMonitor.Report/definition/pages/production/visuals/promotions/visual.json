@@ -1,0 +1,246 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "promotions",
+  "position": {
+    "x": 1236,
+    "y": 648,
+    "z": 6000,
+    "width": 652,
+    "height": 400,
+    "tabOrder": 6000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_promotion"
+                    }
+                  },
+                  "Property": "Decided"
+                }
+              },
+              "queryRef": "fact_promotion.Decided",
+              "nativeQueryRef": "Decided"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_promotion"
+                    }
+                  },
+                  "Property": "Champion"
+                }
+              },
+              "queryRef": "fact_promotion.Champion",
+              "nativeQueryRef": "Champion"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_promotion"
+                    }
+                  },
+                  "Property": "Champion QLIKE"
+                }
+              },
+              "queryRef": "fact_promotion.Champion QLIKE",
+              "nativeQueryRef": "Champion QLIKE"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_promotion"
+                    }
+                  },
+                  "Property": "Challenger"
+                }
+              },
+              "queryRef": "fact_promotion.Challenger",
+              "nativeQueryRef": "Challenger"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_promotion"
+                    }
+                  },
+                  "Property": "Challenger QLIKE"
+                }
+              },
+              "queryRef": "fact_promotion.Challenger QLIKE",
+              "nativeQueryRef": "Challenger QLIKE"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_promotion"
+                    }
+                  },
+                  "Property": "Promoted"
+                }
+              },
+              "queryRef": "fact_promotion.Promoted",
+              "nativeQueryRef": "Promoted"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "fact_promotion"
+                    }
+                  },
+                  "Property": "After"
+                }
+              },
+              "queryRef": "fact_promotion.After",
+              "nativeQueryRef": "After"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "fact_promotion"
+                  }
+                },
+                "Property": "Decided"
+              }
+            },
+            "direction": "Descending"
+          }
+        ]
+      }
+    },
+    "objects": {
+      "total": [
+        {
+          "properties": {
+            "totals": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "values": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "10.0D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "columnHeaders": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "10.0D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Table: Champion and challenger decisions for the VaR volatility model'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Champion and challenger decisions for the VaR volatility model'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'1-day QLIKE over 250 days; promotion needs a lower QLIKE and a zone no worse.'"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#52514e'"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

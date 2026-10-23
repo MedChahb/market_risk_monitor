@@ -1,0 +1,51 @@
+table fact_model_monitor
+	lineageTag: 92419882-0def-58b0-9e88-7556a63e2756
+
+	column date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: fd5824aa-d20a-5203-b68b-02ef35703d91
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Monitor Metric'
+		dataType: string
+		lineageTag: 8eeff8ec-72b6-57bb-9421-832b1be4564b
+		summarizeBy: none
+		sourceColumn: metric
+
+		annotation SummarizationSetBy = Automatic
+
+	column model_id
+		dataType: string
+		isHidden
+		lineageTag: 1212dfaf-6934-57dd-bb7c-391112f5e696
+		summarizeBy: none
+		sourceColumn: model_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column value
+		dataType: double
+		isHidden
+		lineageTag: 09a581cc-f181-5b81-961f-cd8f64e75ea0
+		summarizeBy: none
+		sourceColumn: value
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_model_monitor = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_model_monitor.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"date", type date}, {"metric", type text}, {"model_id", type text}, {"value", type number}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

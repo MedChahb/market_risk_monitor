@@ -1,0 +1,137 @@
+table fact_promotion
+	lineageTag: 5b011906-4ddf-5965-8ea8-94445135af51
+
+	column run_id
+		dataType: string
+		isHidden
+		lineageTag: 1a181f70-2ad5-5c07-96e5-3a6776c196dd
+		summarizeBy: none
+		sourceColumn: run_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Decided
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 68c2cc90-ea3e-5026-8a25-480f0973acab
+		summarizeBy: none
+		sourceColumn: decided_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Promotion Window Start'
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 803254db-224b-5234-bfcf-52436dedee43
+		summarizeBy: none
+		sourceColumn: window_start
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Promotion Window End'
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 809c0890-a1fe-5413-9cc9-bd17c5bc8b80
+		summarizeBy: none
+		sourceColumn: window_end
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Champion
+		dataType: string
+		lineageTag: 53b69c26-1230-5473-9908-785950d2d800
+		summarizeBy: none
+		sourceColumn: champion_before
+
+		annotation SummarizationSetBy = Automatic
+
+	column Challenger
+		dataType: string
+		lineageTag: 630c86dc-6c30-5f21-85e8-0bc907913231
+		summarizeBy: none
+		sourceColumn: challenger
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Champion QLIKE'
+		dataType: double
+		formatString: 0.000
+		lineageTag: ff80c794-0970-5166-9112-8addb8a8340d
+		summarizeBy: none
+		sourceColumn: champion_qlike
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Challenger QLIKE'
+		dataType: double
+		formatString: 0.000
+		lineageTag: f2c16893-5326-5987-805c-aff111ff3925
+		summarizeBy: none
+		sourceColumn: challenger_qlike
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Champion Exceptions'
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 250c92cd-fb9c-5d7b-a552-137420a3bb74
+		summarizeBy: none
+		sourceColumn: champion_exceptions
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Challenger Exceptions'
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 135e1697-dc7e-5cf0-a999-46db0b32719c
+		summarizeBy: none
+		sourceColumn: challenger_exceptions
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Champion Zone'
+		dataType: string
+		lineageTag: b066b9db-8eb0-5039-b2a5-5d8639b20d9b
+		summarizeBy: none
+		sourceColumn: champion_zone
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Challenger Zone'
+		dataType: string
+		lineageTag: 98516514-f3db-5060-a2e7-3be0fd7d08cb
+		summarizeBy: none
+		sourceColumn: challenger_zone
+
+		annotation SummarizationSetBy = Automatic
+
+	column Promoted
+		dataType: boolean
+		lineageTag: f1e60431-7c5a-522e-a148-64e08b763237
+		summarizeBy: none
+		sourceColumn: promoted
+
+		annotation SummarizationSetBy = Automatic
+
+	column After
+		dataType: string
+		lineageTag: 8e21ecc4-e9c4-57b0-89d9-3736757aa642
+		summarizeBy: none
+		sourceColumn: champion_after
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_promotion = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_promotion.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"run_id", type text}, {"decided_at", type datetime}, {"window_start", type date}, {"window_end", type date}, {"champion_before", type text}, {"challenger", type text}, {"champion_qlike", type number}, {"challenger_qlike", type number}, {"champion_exceptions", Int64.Type}, {"challenger_exceptions", Int64.Type}, {"champion_zone", type text}, {"challenger_zone", type text}, {"promoted", type logical}, {"champion_after", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
