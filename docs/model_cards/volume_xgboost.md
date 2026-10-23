@@ -8,8 +8,8 @@
 
 **Validation.** Walk-forward from 2018; mean squared error of log volume, mean absolute percentage error of volume, Diebold-Mariano tests against the 20-day average daily volume (ADV), per stock and in 2020 and 2022.
 
-**Results.** Mean over the ten stocks: squared log error 0.095 against 0.145 for the ADV and 0.115 for a HAR regression; absolute error 25.1% against 31.8% and 26.9%. Better than the ADV and HAR on every stock (Diebold-Mariano p below 0.0005), and better than the ADV in 2020 and 2022. Quarterly expiry Fridays trade 2.35 times the ADV and the eve of a holiday 0.54 times: the calendar is the main gain over HAR.
+**Results.** Mean over the ten stocks: squared log error 0.095 against 0.145 for the ADV and 0.115 for a HAR regression; absolute error 25.1% against 31.8% and 26.9%. Lower error than the ADV and HAR on every stock, over the whole period and in 2020 and 2022; against the ADV, the Diebold-Mariano p-value is below 10⁻¹⁴ on every stock over 2018-2026, below 0.002 in 2020 and below 0.012 in 2022. Quarterly expiry Fridays trade 2.35 times the ADV and the eve of a holiday 0.54 times: the calendar is the main gain over HAR.
 
-**Limits.** Euronext Paris volume only, not the other venues where the shares trade; no earnings dates (no free history); forecasts back-transformed with the exponential target the typical session rather than the mean. Gold stores volumes as multiples of the ADV: raw Yahoo volumes are not redistributed.
+**Limits.** Euronext Paris volume only, not the other venues where the shares trade; no earnings dates (no free history); the forecast is the exponential of a log forecast without bias correction, so it targets the median session rather than the mean volume. Gold stores volumes as multiples of the ADV: raw Yahoo volumes are not redistributed.
 
 **Monitoring.** Rolling 63-session squared log error against the ADV on the Production page.
