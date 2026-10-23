@@ -113,15 +113,15 @@ The pre-trade cost is half the bid-ask spread plus the square-root market impact
 
 Each day is labelled calm, normal or stress by a three-state Gaussian hidden Markov model on equity volatility, the 22-day equity return, the 63-day correlation between the equity indices and the VIX ([`pipeline/regimes.py`](pipeline/regimes.py), analysis in [`notebooks/06_regimes.ipynb`](notebooks/06_regimes.ipynb)). A fit on the whole history describes it; a second HMM, refitted every January on past data and filtered forward, gives the regime known at each close and is the one used to analyse the models.
 
-The regimes match known episodes (83% of 2008 in stress, the 2020 crash from 27 February, 80% of 2022 in the walk-forward fit) and last 41 to 69 days on average, against 10 to 17 for a Gaussian mixture that ignores persistence. By the regime known when each VaR was computed:
+The regimes match known episodes (78% of 2008 in stress, the 2020 crash from 27 February, 73% of 2022 in the walk-forward fit) and last 41 to 81 days on average, against 10 to 17 for a Gaussian mixture that ignores persistence. EM starts from k-means and a persistent transition matrix: random starts gave different labellings, and the best of ten changed when one day of data was added. By the regime known when each VaR was computed:
 
 | VaR 99%, 2012-2026, exceptions / expected | Calm | Normal | Stress |
 |---|---|---|---|
-| Filtered historical simulation | 24 / 22.0 | 10 / 9.2 | 4 / 7.0 |
-| Historical simulation | 24 / 22.0 | 14 / 9.2 | 17 / 7.0 |
-| Parametric (GJR) | 32 / 22.0 | 13 / 9.2 | 9 / 7.0 |
+| Filtered historical simulation | 28 / 21.9 | 7 / 7.5 | 3 / 8.8 |
+| Historical simulation | 33 / 21.9 | 7 / 7.5 | 15 / 8.8 |
+| Parametric (GJR) | 36 / 21.9 | 7 / 7.5 | 11 / 8.8 |
 
-Historical simulation fails when markets turn stressed (Kupiec p = 0.001 in stress), the normal parametric VaR fails in calm markets (p = 0.045), and filtered historical simulation keeps close to 1% in every regime. GJR-GARCH has the lowest volatility forecast loss on the book in normal and stress regimes. The yield-curve slope was left out of the features: it moves too slowly and turned a regime into the steep-curve years of the early 2010s.
+The normal parametric VaR fails in calm markets (Kupiec p = 0.006): a normal distribution leaves no room for a shock out of a quiet market. Historical simulation is exceeded most in stress (18 times for 5.1 expected with hindsight regimes, p < 0.001; 15 for 8.8 walk-forward, p = 0.057). Filtered historical simulation is close to 1% in calm and normal regimes and conservative in stress (p = 0.023). GJR-GARCH has the lowest volatility forecast loss on the book in stress. The walk-forward stress state is less distinct than the full-history one: it also holds long spells of low equity correlation in 2021 and 2024. The yield-curve slope was left out of the features: it moves too slowly and turned a regime into the steep-curve years of the early 2010s.
 
 ## Market data anomaly detector
 

@@ -247,7 +247,7 @@ Key: (`date`, `instrument_id`, `model_id`). Models are refitted at the start of 
 | Column | Type | Description |
 |---|---|---|
 | `date` | date | Reporting day; to `dim_date` |
-| `method` | text | `hmm` (three-state Gaussian hidden Markov model, full covariance, best of 10 EM starts) or `gmm` (Gaussian mixture, same features) |
+| `method` | text | `hmm` (three-state Gaussian hidden Markov model, full covariance, EM started from k-means and a persistent transition matrix) or `gmm` (Gaussian mixture, same features) |
 | `fit` | text | `full_history`: fitted on every day, smoothed probabilities, uses later data (descriptive); `walk_forward`: HMM refitted every January from 2012 on past data, standardised with past statistics, filtered forward (known at the close) |
 | `regime_id` | int | Most probable regime; to `dim_regime` (0 calm, 1 normal, 2 stress; states ordered by mean volatility) |
 | `p_calm`, `p_normal`, `p_stress` | double | Regime probabilities, summing to 1 |

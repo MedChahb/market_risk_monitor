@@ -11,7 +11,6 @@ the backtest stage.
 import argparse
 import logging
 import sys
-import warnings
 
 import numpy as np
 import pandas as pd
@@ -32,7 +31,8 @@ EQUITIES = ["CAC40", "SX5E", "SPX"]
 RETURN_WINDOW = 22  # reporting days in the trailing return
 CORRELATION_WINDOW = 63  # reporting days, about a quarter: shorter windows are dominated by noise
 N_REGIMES = len(REGIMES)
-N_STARTS = 10  # EM restarts from different seeds; the highest likelihood is kept
+N_STARTS = 10  # Gaussian mixture restarts; the highest likelihood is kept
+START_PERSISTENCE = 0.95  # probability of staying in a state at the start of EM, which then estimates it
 WALK_FORWARD_START = 2012  # first yearly refit, on 2008-2011, as the VaR history starts in 2012
 PROBABILITY_COLUMNS = [f"p_{regime['name']}" for regime in REGIMES]
 MARKET_QUERY = text(
@@ -70,16 +70,13 @@ def standardise(features: pd.DataFrame, reference: pd.DataFrame) -> np.ndarray:
 
 
 def fit_hmm(values: np.ndarray) -> hmm.GaussianHMM:
-    best, best_score = None, -np.inf
-    for seed in range(N_STARTS):
-        model = hmm.GaussianHMM(N_REGIMES, covariance_type="full", n_iter=1000, random_state=seed)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")  # convergence notes from poor starts; the best fit is kept
-            model.fit(values)
-        score = model.score(values)
-        if score > best_score:
-            best, best_score = model, score
-    return best
+    """EM started from k-means means and a persistent transition matrix. Random starts reach several
+    optima with different labellings, and the best of ten changed with one more day of data."""
+    move = (1 - START_PERSISTENCE) / (N_REGIMES - 1)
+    model = hmm.GaussianHMM(N_REGIMES, covariance_type="full", n_iter=1000, init_params="mc", random_state=0)
+    model.startprob_ = np.full(N_REGIMES, 1 / N_REGIMES)
+    model.transmat_ = np.full((N_REGIMES, N_REGIMES), move) + np.eye(N_REGIMES) * (START_PERSISTENCE - move)
+    return model.fit(values)
 
 
 def regime_order(means: np.ndarray) -> np.ndarray:
