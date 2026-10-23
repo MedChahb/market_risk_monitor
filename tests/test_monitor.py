@@ -46,7 +46,7 @@ def test_drift_compares_the_last_250_sessions_with_the_years_before_2018():
     drift = monitor.measure_drift(
         monitor.drift_features(returns), "run", pd.Timestamp("2026-01-01", tz="UTC")
     )
-    assert set(drift["feature"]) == set(monitor.DRIFT_FEATURES)
+    assert set(drift["feature"]) == set(monitor.DRIFT_FEATURES.values())
     assert (drift["window_end"] == returns.index[-1]).all()
     assert (drift["window_start"] == returns.index[-250]).all()
 
