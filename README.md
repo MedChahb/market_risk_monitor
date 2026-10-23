@@ -1,10 +1,23 @@
 # Market Risk Monitor
 
+[![CI](https://github.com/MedChahb/market_risk_monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/MedChahb/market_risk_monitor/actions/workflows/ci.yml)
+
 Market risk monitoring of a fictional multi-asset trading book in euros (equities, gold, euro rates, USD), and pre-trade volume and cost estimates for ten large French stocks.
 
-The goal: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall and backtests them, forecasts traded volumes and estimates the cost of an order, with the results reported in Power BI.
+Before each session a risk desk needs a risk figure it can trust, evidence that the figure holds, and an early warning when the data or the models drift. This project builds that chain on free data: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall and backtests them, forecasts traded volumes and estimates the cost of an order, monitors its own runs and models, and reports the results in Power BI.
 
-**Status:** v1.0 (22 October 2026): data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest, and a six-page Power BI report. Since v1.0: volume forecasts and pre-trade costs for ten CAC 40 stocks, with an Execution page in the report, daily market regimes, an anomaly detector for market data, and a scheduled, monitored run in Jenkins. A Production page and a public web app come next.
+**Status:** v1.1 (23 October 2026). The v1.0 risk chain (data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest), plus volume forecasts and pre-trade costs for ten CAC 40 stocks, daily market regimes, an anomaly detector for market data, scheduled and monitored runs in Jenkins with an MLflow model registry, and an eight-page Power BI report. A public web app comes next.
+
+## Key results
+
+| Question | Finding |
+|---|---|
+| Which VaR can the desk rely on? | Filtered historical simulation: 38 exceptions for 38.2 expected over 3,824 days since 2012, passes Kupiec's and Christoffersen's tests, never in the red zone. The four other methods are rejected. |
+| Which volatility forecast feeds it? | GJR-GARCH: the lowest forecast loss on the book over 2018-2026 (QLIKE 0.399 against 0.427 for HAR) and the most accurate in the 2020 crash. |
+| Can volume be forecast better than the 20-day average? | Yes: XGBoost with calendar effects cuts the mean absolute error from 31.8% to 25.1% and beats the average on all ten stocks. |
+| What does an order cost? | 35 to 60 bp for 10% of a session's volume on 22 October 2026, about three times more in March 2020. |
+| Does the market regime matter? | Normal-distribution VaRs fail in calm markets (36 exceptions for 21.9 expected); filtered historical simulation stays close to 1%. |
+| Can bad prices be caught? | 91.2% precision on injected errors: every frozen price, decimal shift and missing day, 78.5% of spikes, and none of the ten largest real moves flagged. |
 
 ## Data lineage
 
@@ -81,7 +94,7 @@ In March 2020 the volatility-driven VaRs doubled by 25-28 February, before the w
 
 ## Backtesting
 
-Each day's VaR is compared with the book's actual P&L on the day it covers, over 3,823 days from 2012 ([`pipeline/backtest.py`](pipeline/backtest.py), analysis in [`notebooks/04_backtest.ipynb`](notebooks/04_backtest.ipynb)): exception counts against the 1% promised, Kupiec's proportion-of-failures test, Christoffersen's independence test and the Basel traffic light on 250 days.
+Each day's VaR is compared with the book's actual P&L on the day it covers, over 3,824 days from 2012 ([`pipeline/backtest.py`](pipeline/backtest.py), analysis in [`notebooks/04_backtest.ipynb`](notebooks/04_backtest.ipynb)): exception counts against the 1% promised, Kupiec's proportion-of-failures test, Christoffersen's independence test and the Basel traffic light on 250 days.
 
 | VaR 99%, 2012-2026 | Exceptions (38 expected) | Kupiec p | Christoffersen p | Worst zone |
 |---|---|---|---|---|
@@ -144,11 +157,11 @@ The chain runs in Jenkins every weekday at 23:00 Paris time, after the US close 
 
 Every Saturday a champion and challenger job ([`jenkins/Jenkinsfile.retrain`](jenkins/Jenkinsfile.retrain), [`pipeline/promotion.py`](pipeline/promotion.py)) scores the EWMA, GARCH and GJR-GARCH 1-day forecasts on the last 250 days. A challenger replaces the champion behind the parametric VaR only if its QLIKE is lower and the Basel zone of its VaR is no worse; the champion is an alias in the MLflow model registry, which the VaR stage reads. The first run kept GJR-GARCH (QLIKE 1.606 against 1.637 for GARCH, both green).
 
-After every run, [`pipeline/monitor.py`](pipeline/monitor.py) records it in `fact_runs` (status, last stage reached, rows in gold, failed quality rules, promotion decision), the drift of the book's inputs (PSI over the last 250 sessions against 2008-2017) and the rolling errors of the volatility and volume models against their baselines. A duplicate price inserted by hand made the quality gate fail the run, every later stage was skipped, and the run appears as failed in `fact_runs`.
+After every run, [`pipeline/monitor.py`](pipeline/monitor.py) records it in `fact_runs` (status, last stage reached, rows in gold, failed quality rules, promotion decision), the drift of the book's inputs (PSI over the last 250 sessions against 2008-2017) and the rolling errors of the volatility and volume models against their baselines. A duplicate price inserted by hand made the quality gate fail the run, every later stage was skipped, and the run appears as failed in `fact_runs`. The Production page of the report shows these tables, and the [runbook](docs/runbook.md) says what to do when a run fails.
 
 ## Power BI report
 
-Seven pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`](powerbi/): the semantic model in TMDL (56 measures) and the pages in PBIR, so every change to a measure or a visual is a reviewable diff. Report changes are listed in [CHANGELOG.md](CHANGELOG.md); the full report is also in [`docs/report.pdf`](docs/report.pdf).
+Eight pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi/`](powerbi/): the semantic model in TMDL (72 measures, each with a description, listed in the [measure dictionary](docs/measures.md) generated from the TMDL files) and the pages in PBIR, so every change to a measure or a visual is a reviewable diff. Report changes are listed in [CHANGELOG.md](CHANGELOG.md); the full report is also in [`docs/report.pdf`](docs/report.pdf).
 
 **Risk.** The latest VaR and ES of the book for the selected method (filtered historical simulation by default), the 250-day exception count and Basel traffic light, the daily P&L against the VaR with exception days in red, and the backtest of the five methods.
 
@@ -170,11 +183,36 @@ Seven pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi
 
 ![Correlation page](docs/images/report_correlation.png)
 
-**Data quality.** Results of the latest quality run, flagged observations by rule and series, how late each series is, and the anomaly detector's precision and recall on injected errors. A **Read me** page gives the definitions, sources and refresh procedure.
+**Data quality.** Results of the latest quality run, flagged observations by rule and series, how late each series is, and the anomaly detector's precision and recall on injected errors.
 
 ![Data quality page](docs/images/report_data_quality.png)
 
-To open it, download `MarketRiskMonitor.pbix` from the [v1.0 release](https://github.com/MedChahb/market_risk_monitor/releases/tag/v1.0) (data included), or open `powerbi/MarketRiskMonitor.pbip`. To refresh either, point the `DataFolder` parameter (Transform data > Edit parameters) to the repository's `data/gold` folder, which holds the published tables, and click Refresh.
+**Production.** The latest night run (status, end time, duration, rows in gold), every scheduled run with the stage it reached and its failed quality rules, the input drift measured at the latest run, the rolling errors of the volatility and volume models against their baselines, and the champion decisions. A **Read me** page gives the definitions, sources and refresh procedure.
+
+![Production page](docs/images/report_production.png)
+
+To open it, download `MarketRiskMonitor.pbix` from the [v1.1 release](https://github.com/MedChahb/market_risk_monitor/releases/tag/v1.1) (data included), or open `powerbi/MarketRiskMonitor.pbip`. To refresh either, point the `DataFolder` parameter (Transform data > Edit parameters) to the repository's `data/gold` folder, which holds the published tables, and click Refresh.
+
+## Limits
+
+- **A fictional, static book.** Constant notionals give a hypothetical P&L, without fees, carry or intraday trading; a desk would also backtest on its actual P&L.
+- **Free data.** One source per series (Yahoo Finance, the ECB, FRED). Yahoo prices are used but not redistributed: the published tables hold returns and derived figures for those series.
+- **A 1-day horizon.** The VaR covers one day at 99%; there is no 10-day or stressed VaR, and the Expected Shortfall is reported but not backtested on its own. With 38 expected exceptions in fourteen years, the tests have limited power to separate close methods.
+- **Volumes and costs.** Euronext Paris volume only; spreads estimated from daily prices, not quoted; the impact coefficient comes from published studies, not from executions.
+- **Regimes.** Three states imposed; the walk-forward stress state is less distinct than the full-history one.
+- **One machine.** The runs are scheduled on a local machine and run when it is on, without failover.
+
+## Documentation
+
+| Document | Content |
+|---|---|
+| [Data dictionary](docs/data_dictionary.md) | Every series and table: units, calendars, licences, known issues |
+| [Model cards](docs/model_cards/README.md) | Purpose, data, validation, results, limits and monitoring of the six models in production |
+| [Measure dictionary](docs/measures.md) | The 72 DAX measures of the report, generated from the TMDL files |
+| [Runbook](docs/runbook.md) | The scheduled jobs, the morning check, and what to do when a run fails |
+| [Note de restitution](docs/note_de_restitution.md) | One-page summary of the book's risk for a trader or a risk manager, in French |
+| [Changelog](CHANGELOG.md) | Changes to the Power BI report, by release |
+| [Report](docs/report.pdf) | Every page of the Power BI report, as a PDF |
 
 ## Quick start
 
