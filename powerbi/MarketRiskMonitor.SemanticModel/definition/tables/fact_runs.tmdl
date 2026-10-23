@@ -1,0 +1,98 @@
+table fact_runs
+	lineageTag: 64ca9803-7615-5dbe-ab1f-dbe93a0d22a0
+
+	column Run
+		dataType: string
+		lineageTag: 08919bee-f099-5dcb-9378-35b1b24969a6
+		summarizeBy: none
+		sourceColumn: run_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Job
+		dataType: string
+		lineageTag: 9b568361-da0e-5fb2-9d87-22ad97882363
+		summarizeBy: none
+		sourceColumn: job
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Started (UTC)'
+		dataType: dateTime
+		formatString: dd mmm yyyy hh:nn
+		lineageTag: 1f1b29e7-b55e-5877-9519-14f945f2b166
+		summarizeBy: none
+		sourceColumn: started_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Finished (UTC)'
+		dataType: dateTime
+		formatString: dd mmm yyyy hh:nn
+		lineageTag: 5cdec3df-c11b-5618-a1e6-b1df0200c0b2
+		summarizeBy: none
+		sourceColumn: finished_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column Status
+		dataType: string
+		lineageTag: 4187ae04-7921-53f8-ad4d-fd68e0b347d6
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Stage Reached'
+		dataType: string
+		lineageTag: d649126e-e960-5f5e-93ff-8ff6c527101e
+		summarizeBy: none
+		sourceColumn: stage_reached
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Rows Loaded'
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 5b0405cb-585a-5870-856f-204a39ea0064
+		summarizeBy: none
+		sourceColumn: rows_loaded
+
+		annotation SummarizationSetBy = Automatic
+
+	column Critical
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 78d5361d-2f39-5f7a-9155-9307aaacf226
+		summarizeBy: none
+		sourceColumn: dq_critical
+
+		annotation SummarizationSetBy = Automatic
+
+	column Warnings
+		dataType: int64
+		formatString: #,##0
+		lineageTag: 3820183c-9376-5400-98ba-b37a2f1efeb6
+		summarizeBy: none
+		sourceColumn: dq_warnings
+
+		annotation SummarizationSetBy = Automatic
+
+	column Detail
+		dataType: string
+		lineageTag: b2ebf9f6-7961-52d2-89aa-daafb907061f
+		summarizeBy: none
+		sourceColumn: detail
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_runs = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\fact_runs.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"run_id", type text}, {"job", type text}, {"started_at", type datetime}, {"finished_at", type datetime}, {"status", type text}, {"stage_reached", type text}, {"rows_loaded", Int64.Type}, {"dq_critical", Int64.Type}, {"dq_warnings", Int64.Type}, {"detail", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

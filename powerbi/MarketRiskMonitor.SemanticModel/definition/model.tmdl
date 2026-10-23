@@ -52,3 +52,8 @@ ref table fact_regime
 ref table fact_forecast_regime
 
 ref table fact_anomaly_evaluation
+
+ref table fact_runs
+ref table fact_drift
+ref table fact_model_monitor
+ref table fact_promotion

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "title",
+  "position": {
+    "x": 32,
+    "y": 32,
+    "z": 0,
+    "width": 1856,
+    "height": 80,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "textbox",
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Last night run success (23 Oct 00:19 UTC, 9 min); 4 runs, 1 stopped by a failure; GJR kept as VaR champion'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Last night run success (23 Oct 00:19 UTC, 9 min); 4 runs, 1 stopped by a failure; GJR kept as VaR champion",
+                    "textStyle": {
+                      "fontWeight": "bold",
+                      "fontSize": "18pt",
+                      "color": "#0b0b0b"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Jenkins runs the chain on weekday nights and the promotion on Saturdays. Return over EWMA volatility: PSI 0.06 (stable), the volatility forecast stays calibrated.",
+                    "textStyle": {
+                      "fontSize": "11pt",
+                      "color": "#52514e"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "key_figures",
+  "position": {
+    "x": 32,
+    "y": 136,
+    "z": 1000,
+    "width": 1856,
+    "height": 104,
+    "tabOrder": 1000
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Last Night Run Status"
+                }
+              },
+              "queryRef": "_Measures.Last Night Run Status",
+              "nativeQueryRef": "Last Night Run Status"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Last Night Run Finished (UTC)"
+                }
+              },
+              "queryRef": "_Measures.Last Night Run Finished (UTC)",
+              "nativeQueryRef": "Last Night Run Finished (UTC)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Last Night Run Duration (min)"
+                }
+              },
+              "queryRef": "_Measures.Last Night Run Duration (min)",
+              "nativeQueryRef": "Last Night Run Duration (min)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Rows in Gold (last success)"
+                }
+              },
+              "queryRef": "_Measures.Rows in Gold (last success)",
+              "nativeQueryRef": "Rows in Gold (last success)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "Failed Runs"
+                }
+              },
+              "queryRef": "_Measures.Failed Runs",
+              "nativeQueryRef": "Failed Runs"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "VaR Champion"
+                }
+              },
+              "queryRef": "_Measures.VaR Champion",
+              "nativeQueryRef": "VaR Champion"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "value": [
+        {
+          "properties": {
+            "labelDisplayUnits": {
+              "expr": {
+                "Literal": {
+                  "Value": "1.0D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Status, end, duration and output of the latest night run, failed runs and the VaR champion'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

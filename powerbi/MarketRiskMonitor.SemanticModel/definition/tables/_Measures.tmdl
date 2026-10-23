@@ -463,6 +463,110 @@ table _Measures
 		displayFolder: Regimes
 		lineageTag: 7e5cb1b7-c905-5474-8bde-54f903ac6cca
 
+	/// End of the latest nightly run, whatever its status.
+	measure 'Last Night Run Finished (UTC)' =
+			CALCULATE ( MAX ( fact_runs[Finished (UTC)] ), REMOVEFILTERS ( fact_runs ), fact_runs[Job] = "nightly" )
+		formatString: dd mmm hh:nn
+		displayFolder: Production
+		lineageTag: 4d4b3c02-2f54-5387-a776-2b0be7abde04
+
+	/// Status of the latest nightly run: SUCCESS, or FAILURE when a stage such as the quality gate stopped it.
+	measure 'Last Night Run Status' =
+			VAR LastFinish = [Last Night Run Finished (UTC)]
+			RETURN
+			    CALCULATE (
+			        MAX ( fact_runs[Status] ),
+			        REMOVEFILTERS ( fact_runs ),
+			        fact_runs[Job] = "nightly",
+			        fact_runs[Finished (UTC)] = LastFinish
+			    )
+		displayFolder: Production
+		lineageTag: 8c3aa480-18cf-5c84-bc11-fb73cb5d4d2c
+
+	/// Minutes between the start and the end of a run, averaged over the runs in the selection.
+	measure 'Run Duration (min)' =
+			AVERAGEX ( fact_runs, ( fact_runs[Finished (UTC)] - fact_runs[Started (UTC)] ) * 1440 )
+		formatString: 0.0
+		displayFolder: Production
+		lineageTag: f73561aa-3c49-565d-9e58-2f6227e50ac6
+
+	/// Duration of the latest nightly run.
+	measure 'Last Night Run Duration (min)' =
+			VAR LastFinish = [Last Night Run Finished (UTC)]
+			RETURN
+			    CALCULATE (
+			        [Run Duration (min)],
+			        REMOVEFILTERS ( fact_runs ),
+			        fact_runs[Job] = "nightly",
+			        fact_runs[Finished (UTC)] = LastFinish
+			    )
+		formatString: 0.0
+		displayFolder: Production
+		lineageTag: a00a7ffd-b601-5ae8-afcd-ae90363c16b2
+
+	/// Rows in the gold tables after the latest successful nightly run.
+	measure 'Rows in Gold (last success)' =
+			VAR LastSuccess =
+			    CALCULATE (
+			        MAX ( fact_runs[Finished (UTC)] ),
+			        REMOVEFILTERS ( fact_runs ),
+			        fact_runs[Job] = "nightly",
+			        fact_runs[Status] = "SUCCESS"
+			    )
+			RETURN
+			    CALCULATE ( MAX ( fact_runs[Rows Loaded] ), REMOVEFILTERS ( fact_runs ), fact_runs[Finished (UTC)] = LastSuccess )
+		formatString: #,##0
+		displayFolder: Production
+		lineageTag: aea1e55e-e262-5d46-b618-79449a119241
+
+	/// Scheduled runs in the selection, both jobs.
+	measure Runs =
+			COUNTROWS ( fact_runs ) + 0
+		formatString: #,##0
+		displayFolder: Production
+		lineageTag: a2ebd32f-f1d1-5d54-af19-f6cdf112dd77
+
+	/// Scheduled runs that ended in FAILURE.
+	measure 'Failed Runs' =
+			CALCULATE ( COUNTROWS ( fact_runs ), fact_runs[Status] = "FAILURE" ) + 0
+		formatString: #,##0
+		displayFolder: Production
+		lineageTag: 0a6010c9-9cc7-5411-acbb-dc6e68b18e31
+
+	/// Population stability index of each feature at the latest measurement: last 250 sessions against 2008-2017.
+	measure 'PSI (latest run)' =
+			VAR LatestRun = CALCULATE ( MAX ( fact_drift[Measured At (UTC)] ), REMOVEFILTERS ( fact_drift ) )
+			RETURN
+			    CALCULATE ( MAX ( fact_drift[PSI] ), fact_drift[Measured At (UTC)] = LatestRun )
+		formatString: 0.000
+		displayFolder: Production
+		lineageTag: 8779fe5b-54f0-5ad2-94dc-cb125623ec58
+
+	/// Reading of the latest PSI: stable below 0.10, moderate to 0.25, significant above.
+	measure 'Drift Status (latest run)' =
+			VAR LatestRun = CALCULATE ( MAX ( fact_drift[Measured At (UTC)] ), REMOVEFILTERS ( fact_drift ) )
+			RETURN
+			    CALCULATE ( MAX ( fact_drift[Drift Status] ), fact_drift[Measured At (UTC)] = LatestRun )
+		displayFolder: Production
+		lineageTag: ac67d5a7-da77-5751-801b-3cf9bec1b6da
+
+	/// Rolling 63-session mean loss of a model, computed in Python after each nightly run. One metric at a time.
+	measure 'Rolling Error' =
+			IF ( HASONEVALUE ( fact_model_monitor[Monitor Metric] ), AVERAGE ( fact_model_monitor[value] ) )
+		formatString: 0.000
+		displayFolder: Production
+		lineageTag: f394018c-c475-5a64-8335-d40cd404134d
+
+	/// Volatility model behind the parametric VaR after the latest promotion decision.
+	measure 'VaR Champion' =
+			VAR LastDecision = CALCULATE ( MAX ( fact_promotion[Decided] ), REMOVEFILTERS ( fact_promotion ) )
+			VAR ModelNumber =
+			    CALCULATE ( MAX ( fact_promotion[After] ), fact_promotion[Decided] = LastDecision )
+			RETURN
+			    LOOKUPVALUE ( dim_model[Model], dim_model[model_id], ModelNumber )
+		displayFolder: Production
+		lineageTag: ab0e8f9c-758f-56fd-b4d9-1e0c02f483c2
+
 	/// Forecast volume of the session as a multiple of the 20-day ADV at the previous close. One model and one stock at a time.
 	measure 'Volume Forecast (× ADV)' =
 			IF (
