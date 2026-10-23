@@ -6,6 +6,7 @@ are positive losses in euros for a book of a given notional; returns and varianc
 
 import numpy as np
 import pandas as pd
+from numpy.lib.stride_tricks import sliding_window_view
 from scipy import stats
 
 VAR_LEVEL = 0.99
@@ -28,18 +29,19 @@ def ewma_variance(returns: pd.Series) -> pd.Series:
     return (returns**2).ewm(alpha=1 - EWMA_DECAY, adjust=False).mean()
 
 
-def tail_risk(losses: np.ndarray) -> tuple[float, float]:
-    """VaR 99% and ES 97.5% of a sample of P&Ls (or standardised returns), as positive losses."""
-    var = -np.quantile(losses, 1 - VAR_LEVEL)
-    threshold = np.quantile(losses, 1 - ES_LEVEL)
-    return var, -losses[losses <= threshold].mean()
+def tail_risk(losses: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """VaR 99% and ES 97.5% of samples of P&Ls (or standardised returns) along the last axis, as
+    positive losses: one sample in a 1-D array, one per row in a 2-D array of windows."""
+    var = -np.quantile(losses, 1 - VAR_LEVEL, axis=-1)
+    threshold = np.quantile(losses, 1 - ES_LEVEL, axis=-1)
+    in_tail = losses <= np.expand_dims(threshold, -1)
+    return var, -np.where(in_tail, losses, 0.0).sum(axis=-1) / in_tail.sum(axis=-1)
 
 
 def historical(pnl: pd.Series) -> pd.DataFrame:
     """VaR and ES computed at each close from the last 250 P&Ls, that day included."""
-    values = pnl.to_numpy()
-    rows = [tail_risk(values[end - HS_WINDOW : end]) for end in range(HS_WINDOW, len(values) + 1)]
-    return pd.DataFrame(rows, index=pnl.index[HS_WINDOW - 1 :], columns=["var", "es"])
+    var, es = tail_risk(sliding_window_view(pnl.to_numpy(), HS_WINDOW))
+    return pd.DataFrame({"var": var, "es": es}, index=pnl.index[HS_WINDOW - 1 :])
 
 
 def parametric(variance: pd.Series, notional: float) -> pd.DataFrame:
@@ -52,15 +54,12 @@ def filtered_historical(returns: pd.Series, variance: pd.Series, notional: float
     """FHS: the last 500 returns, each divided by the volatility forecast for its day, rescaled by the
     forecast for tomorrow. variance is indexed by forecast date: the value at t is the forecast for t+1."""
     standardised = (returns / np.sqrt(variance.shift(1))).dropna()
-    rows = {}
-    for date in variance.index:
-        window = standardised.loc[:date].to_numpy()[-FHS_WINDOW:]
-        if len(window) < FHS_WINDOW:
-            continue
-        var, es = tail_risk(window)
-        scale = np.sqrt(variance.loc[date]) / 100 * notional
-        rows[date] = (var * scale, es * scale)
-    return pd.DataFrame.from_dict(rows, orient="index", columns=["var", "es"])
+    windows = sliding_window_view(standardised.to_numpy(), FHS_WINDOW)  # row k ends at standardised[k + 499]
+    first_row = standardised.index.searchsorted(variance.index, side="right") - FHS_WINDOW
+    has_window = first_row >= 0
+    var, es = tail_risk(windows[first_row[has_window]])
+    scale = np.sqrt(variance.to_numpy()[has_window]) / 100 * notional
+    return pd.DataFrame({"var": var * scale, "es": es * scale}, index=variance.index[has_window])
 
 
 def zone(n_exceptions: float) -> str:
