@@ -2,7 +2,7 @@
 
 Changes to the Power BI report in `powerbi/`, newest first.
 
-## Unreleased
+## v1.1 (2026-10-23)
 
 - 2026-10-23: Market regimes: the HMM starts EM from k-means and a persistent transition matrix instead of the best of ten random starts, so the labels no longer change when a day is added; the regime strip and the QLIKE by regime change with it.
 - 2026-10-23: Production page: status, end and duration of the latest night run, rows in gold, failed runs and the VaR champion; scheduled runs with the stage reached and the failed quality rules; input drift (PSI) at the latest run; rolling volatility and volume forecast errors against their baselines; promotion decisions. 11 new measures and the four monitoring tables; the Read me page lists the page.
