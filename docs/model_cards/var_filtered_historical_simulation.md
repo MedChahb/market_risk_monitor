@@ -8,7 +8,7 @@
 
 **Validation.** Backtest of 3,824 days from 2012: exceptions against the 1% promised, Kupiec's proportion-of-failures test, Christoffersen's independence test, the Basel traffic light on 250 days; also by calendar stress year and by market regime.
 
-**Results.** 38 exceptions for 38.2 expected (Kupiec p = 0.969, Christoffersen p = 0.382); 3 exceptions for 2.6 expected in 2020 and in 2022; 93% of days in the green zone and none in the red. It is the only method of the five that passes every test. By the regime known when the VaR was computed: 24 exceptions for 22.0 expected in calm markets, 10 for 9.2 in normal ones, 4 for 7.0 in stress.
+**Results.** 38 exceptions for 38.2 expected (Kupiec p = 0.969, Christoffersen p = 0.382); 3 exceptions for 2.6 expected in 2020 and in 2022; 93% of days in the green zone and none in the red. It is the only method of the five that passes every test. By the regime known when the VaR was computed: 28 exceptions for 21.9 expected in calm markets, 7 for 7.5 in normal ones and 3 for 8.8 in stress, where it is conservative (Kupiec p = 0.023).
 
 **Limits.** Hypothetical P&L of constant positions (no intraday trading, fees or carry). 38 expected exceptions give the tests limited power to separate close methods. The ES is not backtested directly. The standardisation uses GJR-GARCH whatever the parametric champion.
 
