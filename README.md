@@ -6,7 +6,9 @@ Market risk monitoring of a fictional multi-asset trading book in euros (equitie
 
 Before each session a risk desk needs a risk figure it can trust, evidence that the figure holds, and an early warning when the data or the models drift. This project builds that chain on free data: a nightly Python pipeline that collects and checks market data, forecasts volatility, computes a 99% VaR and a 97.5% Expected Shortfall and backtests them, forecasts traded volumes and estimates the cost of an order, monitors its own runs and models, and reports the results in Power BI.
 
-**Status:** v1.1 (23 October 2026). The v1.0 risk chain (data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest), plus volume forecasts and pre-trade costs for ten CAC 40 stocks, daily market regimes, an anomaly detector for market data, scheduled and monitored runs in Jenkins with an MLflow model registry, and an eight-page Power BI report. A public web app comes next.
+**Status:** v1.1 (23 October 2026). The v1.0 risk chain (data pipeline, volatility forecasts, VaR and Expected Shortfall with their backtest), plus volume forecasts and pre-trade costs for ten CAC 40 stocks, daily market regimes, an anomaly detector for market data, scheduled and monitored runs in Jenkins with an MLflow model registry, and an eight-page Power BI report. Since v1.1: a public web app that recomputes the risk of any book.
+
+**Live app:** [marketriskmonitor.streamlit.app](https://marketriskmonitor.streamlit.app/), to build a book and see its VaR, backtest and stress losses.
 
 ## Key results
 
@@ -52,6 +54,7 @@ flowchart LR
     DQ --> G
     G --> P[gold Parquet<br/>data/gold]
     P --> BI[Power BI report]
+    P --> APP[Streamlit app<br/>custom book, stress tests]
 ```
 
 Twenty daily series from 2008, described with their units, calendars, licences and known issues in the [data dictionary](docs/data_dictionary.md). Critical rules (schema, duplicate keys, non-positive prices, yields out of range) stop the pipeline; warnings (missing sessions, stale values, moves above 15% for indices and 25% for stocks, late data, Yahoo vs ECB EUR/USD gap above 2%, zero volume, suspect prices from the anomaly detector) are stored and reported.
@@ -193,6 +196,16 @@ Eight pages on the gold Parquet tables, saved as a Power BI Project in [`powerbi
 
 To open it, download `MarketRiskMonitor.pbix` from the [v1.1 release](https://github.com/MedChahb/market_risk_monitor/releases/tag/v1.1) (data included), or open `powerbi/MarketRiskMonitor.pbip`. To refresh either, point the `DataFolder` parameter (Transform data > Edit parameters) to the repository's `data/gold` folder, which holds the published tables, and click Refresh.
 
+## Public app
+
+[marketriskmonitor.streamlit.app](https://marketriskmonitor.streamlit.app/) ([`app/`](app/)) is a public demo that recomputes risk for any book, which free Power BI cannot publish online:
+
+- **Risk today:** the reference book's VaR and ES for the next session, its exceptions and traffic light, and the backtest of the five methods, from the gold tables.
+- **Build your book:** a slider per position, long or short; VaR and ES by historical simulation, parametric EWMA and filtered historical simulation on EWMA volatility, and their backtest with Kupiec's and Christoffersen's tests over the years chosen.
+- **Stress tests:** five crises replayed on that book (Lehman Brothers, August 2011, the Brexit vote, the Covid crash, the 2022 rate rise), each loss in multiples of today's VaR, with each position's contribution.
+
+The app trains no model. The nightly pipeline fits the models and publishes the gold tables; the app recomputes the formulas of [`pipeline/risk.py`](pipeline/risk.py) for the visitor's book, in about 0.1 second for 18 years of daily returns on a laptop. A custom book uses EWMA volatility, which needs no fitting; the reference book's figures use GJR-GARCH. With the reference notionals, the app reproduces the pipeline's P&L, historical and EWMA VaRs and exception counts, which the tests check. The app shows the data of the last push, dated on its first page, and the free hosting puts it to sleep when nobody uses it: the next visit waits a short moment while it wakes up.
+
 ## Limits
 
 - **A fictional, static book.** Constant notionals give a hypothetical P&L, without fees, carry or intraday trading; a desk would also backtest on its actual P&L.
@@ -200,7 +213,7 @@ To open it, download `MarketRiskMonitor.pbix` from the [v1.1 release](https://gi
 - **A 1-day horizon.** The VaR covers one day at 99%; there is no 10-day or stressed VaR, and the Expected Shortfall is reported but not backtested on its own. With 38 expected exceptions in fourteen years, the tests have limited power to separate close methods.
 - **Volumes and costs.** Euronext Paris volume only; spreads estimated from daily prices, not quoted; the impact coefficient comes from published studies, not from executions.
 - **Regimes.** Three states imposed; the walk-forward stress state is less distinct than the full-history one.
-- **One machine.** The runs are scheduled on a local machine and run when it is on, without failover.
+- **One machine.** The runs are scheduled on a local machine and run when it is on, without failover. The public app is updated at each push, not every night.
 
 ## Documentation
 
@@ -234,6 +247,7 @@ docker compose up -d               # PostgreSQL 16 on 127.0.0.1:5432
 .venv/bin/python -m pipeline.anomaly_evaluation           # anomaly detector measured on injected errors
 .venv/bin/python -m pipeline.publish                      # gold tables to data/gold/*.parquet
 .venv/bin/pytest                                           # tests (database tests skip without PostgreSQL)
+.venv/bin/streamlit run app/streamlit_app.py               # the public app on http://localhost:8501
 
 docker compose up -d --build jenkins                       # Jenkins on http://127.0.0.1:8080 (admin, JENKINS_ADMIN_PASSWORD)
 ```
