@@ -25,14 +25,13 @@ from arch import arch_model
 from dotenv import load_dotenv
 from sqlalchemy import text
 
-from pipeline import config, db, evaluation, files
+from pipeline import config, db, evaluation, files, risk
 from pipeline.book import BOOK, BOOK_NOTIONAL
 
 log = logging.getLogger("vol_models")
 
 HORIZON = 5  # trading days in the target
 TEST_START = pd.Timestamp("2018-01-01")
-EWMA_DECAY = 0.94  # RiskMetrics value for daily data
 EPSILON = 1e-6  # added to squared returns (percent squared) before taking logs
 SEQUENCE_LENGTH = 22  # days of history the GRU reads, about a month
 DEVICE = torch.device(
@@ -126,14 +125,6 @@ def test_months(
     test = dates[dates >= start]
     by_month = test.groupby(test.to_period("M"))
     return [(by_month[month][0], pd.DatetimeIndex(by_month[month])) for month in sorted(by_month)]
-
-
-def ewma_variance(returns: pd.Series) -> pd.Series:
-    """Forecast made at the close of t: decay x previous forecast + (1 - decay) x r_t squared.
-
-    EWMA has no mean reversion, so the forecast for each of the next 5 days is the same value.
-    """
-    return (returns**2).ewm(alpha=1 - EWMA_DECAY, adjust=False).mean()
 
 
 def garch_forecasts(returns: pd.Series, months: list, asymmetric: bool, horizon: int = HORIZON) -> pd.Series:
@@ -281,7 +272,7 @@ def forecast_series(
             continue  # no open, high, low and close for this series
         started = time.perf_counter()
         if model_id == "ewma":
-            forecast, inputs = ewma_variance(returns).loc[test_dates], "returns"
+            forecast, inputs = risk.ewma_variance(returns).loc[test_dates], "returns"
         elif model_id in ("garch", "gjr"):
             forecast, inputs = garch_forecasts(returns, months, asymmetric=model_id == "gjr"), "returns"
         else:
@@ -379,7 +370,7 @@ def log_runs(table: pd.DataFrame, models: list[str], inputs: pd.DataFrame) -> No
     mlflow.set_tracking_uri(config.MLFLOW_URI)
     mlflow.set_experiment("volatility")
     model_settings = {
-        "ewma": {"ewma_decay": EWMA_DECAY},
+        "ewma": {"ewma_decay": risk.EWMA_DECAY},
         "xgboost": {f"xgb_{key}": value for key, value in XGB_SETTINGS.items()},
         "gru": {"gru_hidden": Gru.hidden, "gru_epochs": Gru.epochs, "gru_sequence_length": SEQUENCE_LENGTH},
     }

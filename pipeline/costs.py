@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 
 from pipeline import calendars, config, db
-from pipeline.vol_models import ewma_variance
+from pipeline.risk import ewma_variance
 
 log = logging.getLogger("costs")
 

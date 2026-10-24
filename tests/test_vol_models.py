@@ -34,18 +34,6 @@ def test_features_use_nothing_after_the_forecast_date():
     pd.testing.assert_frame_equal(before.iloc[:600], after.iloc[:600])
 
 
-def test_ewma_follows_the_riskmetrics_recursion():
-    returns = garch_returns().iloc[:50]
-    forecast = vol_models.ewma_variance(returns)
-    expected = 0.94 * forecast.iloc[29] + 0.06 * returns.iloc[30] ** 2
-    assert forecast.iloc[30] == pytest.approx(expected)
-
-
-def test_ewma_converges_to_the_squared_return_when_returns_are_constant():
-    returns = pd.Series(2.0, index=DATES[:300])
-    assert vol_models.ewma_variance(returns).iloc[-1] == pytest.approx(4.0)
-
-
 def test_test_months_start_in_2018_and_cover_each_day_once():
     months = vol_models.test_months(DATES)
     assert [start for start, _ in months] == [

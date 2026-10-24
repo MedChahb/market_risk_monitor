@@ -20,7 +20,8 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 
 from pipeline import calendars, config, db, evaluation
-from pipeline.vol_models import STRESS_YEARS, TEST_START, XGB_SETTINGS, ewma_variance, test_months
+from pipeline.risk import ewma_variance
+from pipeline.vol_models import STRESS_YEARS, TEST_START, XGB_SETTINGS, test_months
 
 log = logging.getLogger("volume_models")
 
